@@ -43,9 +43,14 @@ const wrapEntity = (ctx: WalkContext, spec: EntitySpec, body: () => void): void 
     ctx.emitter.closeEntity(handle);
 };
 
-/** Absolute-url policy: scheme → as-is; www. → https:// prefixed; else null */
+/**
+ * text_link url policy: the server silently DROPS entities whose url is not
+ * http(s)/tg (observed live: mailto links vanish from sent messages) — only
+ * emit entities for schemes Telegram keeps; www. gets https:// prefixed;
+ * everything else degrades to plain text.
+ */
 const resolveLinkTarget = (url: string): string | null => {
-    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) return url;
+    if (/^(https?|tg):/i.test(url)) return url;
     if (/^www\./i.test(url)) return `https://${url}`;
     return null;
 };

@@ -15,3 +15,5 @@ export { splitMessage } from './split/split-message';
 export { validateMessage } from './validate/validate-message';
 export { toPreviewHtml } from './preview/to-preview-html';
 export { TELEGRAM_PREVIEW_CSS } from './preview/styles';
+export { wrapInBlockquote } from './compose/wrap-in-blockquote';
+export { concatMessages } from './compose/concat-messages';

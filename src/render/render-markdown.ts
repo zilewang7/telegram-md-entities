@@ -7,6 +7,7 @@ import { repairTail } from '../streaming/repair-tail';
 import { stripSyntheticSuffix } from '../streaming/strip-synthetic';
 import { createEmitter } from './emitter';
 import { normalizeEntities } from './normalize-entities';
+import { splitFormattingAroundOpaque } from './split-around-opaque';
 import { parseMarkdown } from './parse';
 import { walkBlocks, type WalkOptions } from './walker';
 
@@ -46,7 +47,10 @@ export const renderMarkdown = (
     }, '\n\n');
 
     const { text, entities } = emitter.finish();
-    const rendered = { text, entities: normalizeEntities(entities) };
+    const rendered = {
+        text,
+        entities: normalizeEntities(splitFormattingAroundOpaque(entities)),
+    };
 
     if (repair && repair.appendix) {
         const stripped = stripSyntheticSuffix(rendered, repair.appendix);
