@@ -18,7 +18,7 @@ interface ResolvedRenderOptions extends WalkOptions {
 
 const resolveOptions = (options?: RenderOptions): ResolvedRenderOptions => ({
     streaming: options?.streaming ?? false,
-    table: options?.table ?? 'pre',
+    table: options?.table ?? 'auto',
     heading: options?.heading ?? 'bold',
     hrText: options?.hrText ?? DEFAULT_HR_TEXT,
     spoiler: options?.spoiler ?? true,

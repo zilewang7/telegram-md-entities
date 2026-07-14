@@ -13,13 +13,16 @@ const counts = (value: string): { wide: number; narrow: number } => {
 };
 
 /**
- * Ratio-independence invariant: a table aligns on EVERY client (whatever
- * the CJK/mono width ratio) iff, per column, every row carries the same
- * count of wide chars and the same count of narrow chars. The last column
- * is exempt (rows are right-trimmed; nothing aligns after it).
+ * Count-padding invariant for the FORCED grid mode ('pre'): per column,
+ * every row carries the same count of wide chars and the same count of
+ * narrow chars, so pipes align in any true-monospace context (terminal,
+ * the preview renderer). Real Telegram clients resolve different wide
+ * chars to different fallback fonts, which is why 'auto' routes
+ * wide-containing tables to record lines instead. The last column is
+ * exempt (rows are right-trimmed; nothing aligns after it).
  */
 const expectRatioIndependentAlignment = (markdown: string): void => {
-    const rendered = renderMarkdown(markdown);
+    const rendered = renderMarkdown(markdown, { table: 'pre' });
     const pre = rendered.entities.find((entity) => entity.type === 'pre');
     expect(pre).toBeDefined();
     if (!pre) return;

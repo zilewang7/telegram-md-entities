@@ -16,11 +16,12 @@ import type {
 } from 'mdast';
 import { match } from 'ts-pattern';
 import type { EntitySpec, Emitter } from './emitter';
-import { alignedTableText, plainTableText } from './table';
+import { alignedTableText, plainTableText, tableToCells } from './table';
+import { tableHasWideContent, tableToRecordLines } from './table-records';
 import { plainTextOfNodes } from './plain-text';
 
 export interface WalkOptions {
-    table: 'pre' | 'plain';
+    table: 'auto' | 'pre' | 'records' | 'plain';
     heading: 'bold' | 'bold-underline';
     hrText: string;
     linkifyBareUrls: boolean;
@@ -129,12 +130,36 @@ const renderList = (node: List, ctx: WalkContext): void => {
     });
 };
 
-const renderTable = (node: Table, ctx: WalkContext): void => {
-    if (ctx.options.table === 'plain') {
-        ctx.emitter.pushText(plainTableText(node));
-        return;
-    }
+const renderTableGrid = (node: Table, ctx: WalkContext): void => {
     wrapEntity(ctx, { type: 'pre' }, () => ctx.emitter.pushText(alignedTableText(node)));
+};
+
+const renderTableRecords = (node: Table, ctx: WalkContext): void => {
+    tableToRecordLines(tableToCells(node)).forEach((line, index) => {
+        if (index > 0) ctx.emitter.pushGap('\n');
+        if (line.key !== '') {
+            wrapEntity(ctx, { type: 'bold' }, () => ctx.emitter.pushText(line.key));
+            if (line.fields.length > 0) {
+                ctx.emitter.pushText(` — ${line.fields.join(' · ')}`);
+            }
+        } else {
+            ctx.emitter.pushText(line.fields.join(' · '));
+        }
+    });
+};
+
+const renderTable = (node: Table, ctx: WalkContext): void => {
+    match(ctx.options.table)
+        .with('plain', () => ctx.emitter.pushText(plainTableText(node)))
+        .with('pre', () => renderTableGrid(node, ctx))
+        .with('records', () => renderTableRecords(node, ctx))
+        .with('auto', () => {
+            // Grid alignment is only reliable when the mono font covers every
+            // char; wide (CJK/fullwidth) content falls back to record lines
+            if (tableHasWideContent(tableToCells(node))) renderTableRecords(node, ctx);
+            else renderTableGrid(node, ctx);
+        })
+        .exhaustive();
 };
 
 /** Last-resort handling so unknown node types never throw or vanish silently */

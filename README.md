@@ -22,7 +22,7 @@ await bot.api.sendMessage(chatId, text, { entities }); // grammy / telegraf / ra
 | code block language lost | `pre.language` preserved (syntax highlighting) |
 | visible length = guesswork through the parser | `text.length` is exact (UTF-16, what Telegram counts) |
 | splitting breaks formatting at boundaries | entities close & reopen across chunks seamlessly |
-| tables become a wall of `\|` | monospace-aligned `pre` tables (CJK display-width aware) |
+| tables become a wall of `\|` | ASCII tables → aligned `pre` grids; CJK tables → clean record lines |
 
 On this repo's 17-fixture corpus, the popular string pipeline (`telegramify-markdown` + `parse_mode`) produces hard 400 parse errors on 3 fixtures; the entities path has zero failures (`RUN_DIFFERENTIAL=1 pnpm test:e2e` reproduces the report).
 
@@ -48,6 +48,8 @@ For token-streaming UIs: unclosed constructs render as their intended formatting
 ### Markdown coverage
 
 GFM (tables, strikethrough, task lists, autolinks) + `||spoiler||` dialect. Headings → bold; `---` → text divider; nested quotes flattened (Telegram quotes can't nest); bare URLs left for client auto-linking.
+
+**Tables** (`table: 'auto'`, the default): narrow-only tables become a monospace-aligned `pre` grid — exact on every client, since mono fonts are actually monospace for ASCII. Tables containing East Asian Wide characters become record lines instead — `**first cell** — header: value · header: value` per row. This is deliberate: inside Telegram `pre` blocks, CJK ideographs, `U+3000` and fullwidth punctuation resolve to *different* fallback fonts with *different* advance widths on each client (measured live on macOS/Android), so no padding scheme can align a mixed grid everywhere — and padded grids overflow phone bubbles and wrap anyway. Force a mode with `table: 'pre' | 'records' | 'plain'`.
 
 **CJK-friendly emphasis** via [micromark-extension-cjk-friendly](https://www.npmjs.com/package/micromark-extension-cjk-friendly): `的**“重点”**后` renders bold — vanilla CommonMark flanking rules silently break emphasis next to fullwidth punctuation, which hits Chinese/Japanese/Korean LLM output constantly. The streaming tail scanner applies the same relaxed rules, so in-progress CJK bold renders correctly mid-stream too.
 

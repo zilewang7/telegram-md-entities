@@ -43,8 +43,17 @@ export interface RenderOptions {
      * On a complete document the output is identical to strict mode.
      */
     streaming?: boolean;
-    /** How to render GFM tables (default 'pre': monospace-aligned code block) */
-    table?: 'pre' | 'plain';
+    /**
+     * How to render GFM tables (default 'auto'):
+     * - 'auto': narrow-only tables → monospace-aligned pre grid; tables
+     *   containing East Asian Wide chars → record lines (cross-client grid
+     *   alignment is impossible for those: CJK glyphs, U+3000 and fullwidth
+     *   punctuation resolve to different fallback fonts with different widths)
+     * - 'pre': always the aligned pre grid
+     * - 'records': always record lines (**first cell** — header: value · …)
+     * - 'plain': rows joined with ' | ', no alignment, no pre
+     */
+    table?: 'auto' | 'pre' | 'records' | 'plain';
     /** Heading rendering (default 'bold'; 'bold-underline' underlines h1/h2) */
     heading?: 'bold' | 'bold-underline';
     /** String used in place of horizontal rules (default '———') */
