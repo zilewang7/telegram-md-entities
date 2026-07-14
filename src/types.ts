@@ -1,0 +1,85 @@
+/**
+ * Core public types.
+ *
+ * MessageEntity is structurally compatible with @grammyjs/types / typegram /
+ * telegraf entity objects, so consumers can pass results straight to any Bot
+ * API framework without casting.
+ */
+
+export type EntityType =
+    | 'bold'
+    | 'italic'
+    | 'underline'
+    | 'strikethrough'
+    | 'spoiler'
+    | 'code'
+    | 'pre'
+    | 'text_link'
+    | 'blockquote'
+    | 'expandable_blockquote';
+
+export interface MessageEntity {
+    type: EntityType;
+    /** UTF-16 code units, as the Bot API requires */
+    offset: number;
+    /** UTF-16 code units, as the Bot API requires */
+    length: number;
+    /** text_link only */
+    url?: string;
+    /** pre only */
+    language?: string;
+}
+
+export interface RenderedMessage {
+    text: string;
+    entities: MessageEntity[];
+}
+
+export interface RenderOptions {
+    /**
+     * Streaming mode: the input is a growing prefix of a document, so
+     * unclosed constructs (bold, fences, links...) are rendered as their
+     * intended formatting instead of literal marker characters.
+     * On a complete document the output is identical to strict mode.
+     */
+    streaming?: boolean;
+    /** How to render GFM tables (default 'pre': monospace-aligned code block) */
+    table?: 'pre' | 'plain';
+    /** Heading rendering (default 'bold'; 'bold-underline' underlines h1/h2) */
+    heading?: 'bold' | 'bold-underline';
+    /** String used in place of horizontal rules (default '———') */
+    hrText?: string;
+    /** Enable the ||spoiler|| dialect (default true) */
+    spoiler?: boolean;
+}
+
+export interface SplitOptions {
+    /** Max UTF-16 length per chunk (default 4096, Telegram's message limit) */
+    maxLength?: number;
+    /** Max entities per chunk (default 90, under Telegram's ~100 silent cap) */
+    maxEntities?: number;
+}
+
+export type ValidationIssueCode =
+    | 'offset-out-of-bounds'
+    | 'length-out-of-bounds'
+    | 'surrogate-misaligned'
+    | 'zero-length'
+    | 'overlap-not-nested'
+    | 'illegal-nesting'
+    | 'text-too-long'
+    | 'too-many-entities'
+    | 'missing-url'
+    | 'unexpected-field';
+
+export interface ValidationIssue {
+    code: ValidationIssueCode;
+    message: string;
+    /** Index into the entities array this issue refers to, if applicable */
+    entityIndex?: number;
+}
+
+export interface PreviewOptions {
+    /** Inline the default Telegram-like CSS into the output (default true) */
+    includeStyles?: boolean;
+}
