@@ -456,18 +456,24 @@ exports[`renderMarkdown corpus snapshots > gfm-table 1`] = `
     },
     {
       "length": 6,
-      "offset": 26,
+      "offset": 34,
       "type": "bold",
     },
     {
       "length": 19,
-      "offset": 53,
+      "offset": 69,
       "type": "bold",
     },
   ],
-  "text": "• 苹果 — 数量: 3 · 单价: ¥5.5
-• 香蕉(进口) — 数量: 12 · 单价: ¥3
-• longer english cell — 数量: 1 · 单价: $10.00
+  "text": "• 苹果
+    • 数量: 3
+    • 单价: ¥5.5
+• 香蕉(进口)
+    • 数量: 12
+    • 单价: ¥3
+• longer english cell
+    • 数量: 1
+    • 单价: $10.00
 
 表格后正文。",
 }

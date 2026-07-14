@@ -140,10 +140,11 @@ const renderTableRecords = (node: Table, ctx: WalkContext): void => {
         ctx.emitter.pushText('• ');
         if (line.key !== '') {
             wrapEntity(ctx, { type: 'bold' }, () => ctx.emitter.pushText(line.key));
-            if (line.fields.length > 0) {
-                ctx.emitter.pushText(` — ${line.fields.join(' · ')}`);
+            for (const field of line.fields) {
+                ctx.emitter.pushText(`\n    • ${field}`);
             }
         } else {
+            // Degenerate row without a first cell: keep fields on one line
             ctx.emitter.pushText(line.fields.join(' · '));
         }
     });

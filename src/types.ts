@@ -46,11 +46,13 @@ export interface RenderOptions {
     /**
      * How to render GFM tables (default 'auto'):
      * - 'auto': narrow-only tables → monospace-aligned pre grid; tables
-     *   containing East Asian Wide chars → record lines (cross-client grid
-     *   alignment is impossible for those: CJK glyphs, U+3000 and fullwidth
-     *   punctuation resolve to different fallback fonts with different widths)
+     *   containing East Asian Wide chars → nested bullet list (cross-client
+     *   grid alignment is impossible for those: CJK glyphs, U+3000 and
+     *   fullwidth punctuation resolve to different fallback fonts with
+     *   different widths)
      * - 'pre': always the aligned pre grid
-     * - 'records': always record lines (• **first cell** — header: value · …)
+     * - 'records': always the nested bullet list (• **first cell** with
+     *   one '    • header: value' sub-item per remaining cell)
      * - 'plain': rows joined with ' | ', no alignment, no pre
      */
     table?: 'auto' | 'pre' | 'records' | 'plain';
