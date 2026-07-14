@@ -320,7 +320,7 @@ exports[`renderMarkdown corpus snapshots > dialect-spoiler 1`] = `
 
 表格共存:
 
-单元格剧透 · 普通",
+• 单元格剧透 · 普通",
 }
 `;
 
@@ -451,23 +451,23 @@ exports[`renderMarkdown corpus snapshots > gfm-table 1`] = `
   "entities": [
     {
       "length": 2,
-      "offset": 0,
+      "offset": 2,
       "type": "bold",
     },
     {
       "length": 6,
-      "offset": 22,
+      "offset": 26,
       "type": "bold",
     },
     {
       "length": 19,
-      "offset": 47,
+      "offset": 53,
       "type": "bold",
     },
   ],
-  "text": "苹果 — 数量: 3 · 单价: ¥5.5
-香蕉(进口) — 数量: 12 · 单价: ¥3
-longer english cell — 数量: 1 · 单价: $10.00
+  "text": "• 苹果 — 数量: 3 · 单价: ¥5.5
+• 香蕉(进口) — 数量: 12 · 单价: ¥3
+• longer english cell — 数量: 1 · 单价: $10.00
 
 表格后正文。",
 }

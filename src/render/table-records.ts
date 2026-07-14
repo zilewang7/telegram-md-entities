@@ -6,10 +6,10 @@
  * punctuation can resolve to THREE different advance widths (measured live
  * on macOS and Android, 2026-07-14), so no padding character is guaranteed
  * to match an ideograph's width — and padded grids overflow phone bubbles
- * and wrap anyway. Each body row instead becomes one line that needs no
- * column alignment at all:
+ * and wrap anyway. Each body row instead becomes one bullet-list line that
+ * needs no column alignment at all:
  *
- *   **first cell** — header2: cell2 · header3: cell3
+ *   • **first cell** — header2: cell2 · header3: cell3
  *
  * The first column's own header label is dropped (the bold cell acts as the
  * record title); every other cell keeps its header as an inline label.

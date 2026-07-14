@@ -50,7 +50,7 @@ export interface RenderOptions {
      *   alignment is impossible for those: CJK glyphs, U+3000 and fullwidth
      *   punctuation resolve to different fallback fonts with different widths)
      * - 'pre': always the aligned pre grid
-     * - 'records': always record lines (**first cell** — header: value · …)
+     * - 'records': always record lines (• **first cell** — header: value · …)
      * - 'plain': rows joined with ' | ', no alignment, no pre
      */
     table?: 'auto' | 'pre' | 'records' | 'plain';

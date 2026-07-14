@@ -137,6 +137,7 @@ const renderTableGrid = (node: Table, ctx: WalkContext): void => {
 const renderTableRecords = (node: Table, ctx: WalkContext): void => {
     tableToRecordLines(tableToCells(node)).forEach((line, index) => {
         if (index > 0) ctx.emitter.pushGap('\n');
+        ctx.emitter.pushText('• ');
         if (line.key !== '') {
             wrapEntity(ctx, { type: 'bold' }, () => ctx.emitter.pushText(line.key));
             if (line.fields.length > 0) {

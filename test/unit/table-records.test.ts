@@ -13,9 +13,9 @@ describe('table auto mode', () => {
         expect(entities.some((entity) => entity.type === 'pre')).toBe(false);
         expect(text).toBe(
             [
-                '苹果 — 数量: 3 · 单价: ¥5.5',
-                '香蕉(进口) — 数量: 12 · 单价: ¥3',
-                'longer english cell — 数量: 1 · 单价: $10.00',
+                '• 苹果 — 数量: 3 · 单价: ¥5.5',
+                '• 香蕉(进口) — 数量: 12 · 单价: ¥3',
+                '• longer english cell — 数量: 1 · 单价: $10.00',
             ].join('\n')
         );
         // Each row's first cell is bolded as the record title
@@ -42,7 +42,7 @@ describe('table records mode', () => {
     it('can be forced for narrow-only tables', () => {
         const { text } = renderMarkdown(ASCII_TABLE, { table: 'records' });
         expect(text).toBe(
-            ['apple — qty: 3 · price: $5.50', 'longer english cell — qty: 12 · price: $3'].join(
+            ['• apple — qty: 3 · price: $5.50', '• longer english cell — qty: 12 · price: $3'].join(
                 '\n'
             )
         );
@@ -53,13 +53,13 @@ describe('table records mode', () => {
             '| a | b | c |\n| --- | --- | --- |\n| 混合mixed | | x |\n| 空 |',
             { table: 'records' }
         );
-        expect(text).toBe(['混合mixed — c: x', '空'].join('\n'));
+        expect(text).toBe(['• 混合mixed — c: x', '• 空'].join('\n'));
     });
 
     it('renders a header-only table as one unlabeled record', () => {
         const { text } = renderMarkdown('| 甲 | 乙 | 丙 |\n| --- | --- | --- |', {
             table: 'records',
         });
-        expect(text).toBe('甲 — 乙 · 丙');
+        expect(text).toBe('• 甲 — 乙 · 丙');
     });
 });
