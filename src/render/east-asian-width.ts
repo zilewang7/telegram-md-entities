@@ -1,8 +1,8 @@
 /**
- * Simplified East_Asian_Width: display width of a string where Wide/Fullwidth
- * code points (CJK, Hangul, Kana, fullwidth forms, emoji) count as 2 columns.
- * Used to align table columns inside monospace pre blocks so Chinese tables
- * line up; a compact range table beats a Unicode-data dependency here.
+ * Simplified East_Asian_Width: detects Wide/Fullwidth code points (CJK,
+ * Hangul, Kana, fullwidth forms, emoji). Used for table column padding and
+ * the streaming CJK-friendly flanking rules; a compact range table beats a
+ * Unicode-data dependency here.
  */
 
 const WIDE_RANGES: ReadonlyArray<readonly [number, number]> = [
@@ -29,15 +29,6 @@ const isWide = (codePoint: number): boolean => {
         if (codePoint < start) return false; // ranges are sorted
     }
     return false;
-};
-
-export const displayWidth = (value: string): number => {
-    let width = 0;
-    for (const char of value) {
-        const codePoint = char.codePointAt(0);
-        width += codePoint !== undefined && isWide(codePoint) ? 2 : 1;
-    }
-    return width;
 };
 
 /** First code point is East Asian Wide (CJK ideographs, kana, fullwidth…) */
