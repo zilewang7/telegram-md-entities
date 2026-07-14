@@ -3,6 +3,8 @@
  */
 import type { RenderOptions, RenderedMessage } from '../types';
 import { DEFAULT_HR_TEXT } from '../constants';
+import { repairTail } from '../streaming/repair-tail';
+import { stripSyntheticSuffix } from '../streaming/strip-synthetic';
 import { createEmitter } from './emitter';
 import { normalizeEntities } from './normalize-entities';
 import { parseMarkdown } from './parse';
@@ -28,7 +30,13 @@ export const renderMarkdown = (
 ): RenderedMessage => {
     const resolved = resolveOptions(options);
 
-    const root = parseMarkdown(markdown, { spoiler: resolved.spoiler });
+    // Streaming: repair the unclosed tail so in-progress constructs render
+    // as their intended formatting; a complete document passes through
+    // untouched, so streaming output converges with the strict render
+    const repair = resolved.streaming ? repairTail(markdown) : null;
+    const source = repair ? repair.repaired : markdown;
+
+    const root = parseMarkdown(source, { spoiler: resolved.spoiler });
     const emitter = createEmitter();
     walkBlocks(root.children, {
         emitter,
@@ -38,5 +46,11 @@ export const renderMarkdown = (
     }, '\n\n');
 
     const { text, entities } = emitter.finish();
-    return { text, entities: normalizeEntities(entities) };
+    const rendered = { text, entities: normalizeEntities(entities) };
+
+    if (repair && repair.appendix) {
+        const stripped = stripSyntheticSuffix(rendered, repair.appendix);
+        return { text: stripped.text, entities: normalizeEntities(stripped.entities) };
+    }
+    return rendered;
 };

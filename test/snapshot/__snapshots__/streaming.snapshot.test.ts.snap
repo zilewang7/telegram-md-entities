@@ -1,0 +1,187 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`streaming render snapshots (§1.5 table) > bold spanning half link 1`] = `
+{
+  "entities": [
+    {
+      "length": 5,
+      "offset": 0,
+      "type": "bold",
+    },
+  ],
+  "text": "重点 标签",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > complete doc passes through 1`] = `
+{
+  "entities": [
+    {
+      "length": 2,
+      "offset": 3,
+      "type": "bold",
+    },
+  ],
+  "text": "完整 文档 不受影响。
+
+• 列表
+• 结束",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > escaped stars untouched 1`] = `
+{
+  "entities": [],
+  "text": "转义 **不是加粗",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > fence inside quote 1`] = `
+{
+  "entities": [
+    {
+      "length": 17,
+      "offset": 0,
+      "type": "blockquote",
+    },
+    {
+      "language": "js",
+      "length": 12,
+      "offset": 5,
+      "type": "pre",
+    },
+  ],
+  "text": "引用里
+
+const x = 1;",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > half image alt kept 1`] = `
+{
+  "entities": [],
+  "text": "图 替代文本",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > half link url hidden 1`] = `
+{
+  "entities": [],
+  "text": "看这个 链接文本",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > literal double star 1`] = `
+{
+  "entities": [],
+  "text": "a ** b 应保持字面",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > partial table header 1`] = `
+{
+  "entities": [],
+  "text": "| 名称 | 数量 |
+| ---",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > plain label bracket stays literal 1`] = `
+{
+  "entities": [],
+  "text": "引用文献 [1] 和 [未完成",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > trailing lone star 1`] = `
+{
+  "entities": [],
+  "text": "价格 5 *",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > unclosed bold 1`] = `
+{
+  "entities": [
+    {
+      "length": 10,
+      "offset": 3,
+      "type": "bold",
+    },
+  ],
+  "text": "前文 加粗未闭合的流式片段",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > unclosed fence with language 1`] = `
+{
+  "entities": [
+    {
+      "language": "python",
+      "length": 8,
+      "offset": 5,
+      "type": "pre",
+    },
+  ],
+  "text": "说明:
+
+print(1)",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > unclosed inline code hides other markers 1`] = `
+{
+  "entities": [
+    {
+      "length": 10,
+      "offset": 3,
+      "type": "code",
+    },
+  ],
+  "text": "这是 code **不加粗",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > unclosed italic nested in bold 1`] = `
+{
+  "entities": [
+    {
+      "length": 3,
+      "offset": 0,
+      "type": "italic",
+    },
+    {
+      "length": 1,
+      "offset": 2,
+      "type": "bold",
+    },
+  ],
+  "text": "a b",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > unclosed spoiler 1`] = `
+{
+  "entities": [
+    {
+      "length": 4,
+      "offset": 3,
+      "type": "spoiler",
+    },
+  ],
+  "text": "剧透 还没结束",
+}
+`;
+
+exports[`streaming render snapshots (§1.5 table) > unclosed strikethrough 1`] = `
+{
+  "entities": [
+    {
+      "length": 3,
+      "offset": 3,
+      "type": "strikethrough",
+    },
+  ],
+  "text": "划掉 这一段",
+}
+`;
