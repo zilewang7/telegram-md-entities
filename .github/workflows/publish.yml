@@ -1,0 +1,35 @@
+# npm Trusted Publishing (OIDC): no npm token stored in GitHub.
+# One-time setup on npmjs.com — package Settings → Trusted Publisher:
+#   GitHub Actions / zilewang7/telegram-md-entities / publish.yml
+# Release flow: bump version, git tag vX.Y.Z, git push --tags
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write # OIDC token for npm trusted publishing + provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      # Trusted publishing needs npm >= 11.5.1
+      - run: npm install -g npm@latest
+
+      - run: corepack enable
+
+      - run: pnpm install --frozen-lockfile
+
+      # prepublishOnly runs typecheck + offline tests + build + publint/attw
+      - run: npm publish

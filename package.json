@@ -14,6 +14,15 @@
         "telegraf"
     ],
     "license": "MIT",
+    "author": "zilewang7",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/zilewang7/telegram-md-entities.git"
+    },
+    "homepage": "https://github.com/zilewang7/telegram-md-entities#readme",
+    "bugs": {
+        "url": "https://github.com/zilewang7/telegram-md-entities/issues"
+    },
     "type": "module",
     "engines": {
         "node": ">=18"
