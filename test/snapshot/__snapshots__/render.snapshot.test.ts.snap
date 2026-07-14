@@ -310,7 +310,7 @@ exports[`renderMarkdown corpus snapshots > dialect-spoiler 1`] = `
       "type": "spoiler",
     },
     {
-      "length": 99,
+      "length": 77,
       "offset": 104,
       "type": "pre",
     },
@@ -325,9 +325,9 @@ exports[`renderMarkdown corpus snapshots > dialect-spoiler 1`] = `
 
 表格共存:
 
-列甲 | 列乙 |            |  |  |
----- | ---- | ---------- | - | - | ----
-     |      | 单元格剧透 |  |  | 普通",
+列甲 | 列乙 | 　　　　　 |  |  |
+－－ | －－ | －－－－－ |  |  | －－
+　　 | 　　 | 单元格剧透 |  |  | 普通",
 }
 `;
 
@@ -457,16 +457,16 @@ exports[`renderMarkdown corpus snapshots > gfm-table 1`] = `
 {
   "entities": [
     {
-      "length": 163,
+      "length": 200,
       "offset": 0,
       "type": "pre",
     },
   ],
-  "text": "名称                | 数量 |  单价
-------------------- | ---- | ------
-苹果                |    3 |  ¥5.5
-香蕉(进口)          |   12 |   ¥3
-longer english cell |    1 | $10.00
+  "text": "名称                   　　 |   数量 |    单价
+－－－－------------------- | －－-- | －－------
+苹果                   　　 | 　　 3 | 　 ¥5.5
+香蕉(进口)                  | 　　12 | 　  ¥3
+longer english cell　　　　 | 　　 1 | 　$10.00
 
 表格后正文。",
 }
