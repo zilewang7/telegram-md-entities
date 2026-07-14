@@ -47,7 +47,7 @@ For token-streaming UIs: unclosed constructs render as their intended formatting
 
 ### Markdown coverage
 
-GFM (tables, strikethrough, task lists, autolinks) + `||spoiler||` dialect. Headings → bold; `---` → text divider; nested quotes flattened (Telegram quotes can't nest); bare URLs left for client auto-linking.
+GFM (tables, strikethrough, task lists, autolinks) + `||spoiler||` and `__underline__` dialects (Telegram MarkdownV2 semantics: `__` means underline, bold is `**`; `_italic_` unaffected — opt out with `underline: false`). Headings → bold; `---` → text divider; nested quotes flattened (Telegram quotes can't nest); bare URLs left for client auto-linking.
 
 **Tables** (`table: 'auto'`, the default): narrow-only tables become a monospace-aligned `pre` grid — exact on every client, since mono fonts are actually monospace for ASCII. Tables containing East Asian Wide characters become a nested bullet list instead — `• **first cell**` per row with a `• header: value` sub-item per remaining cell. This is deliberate: inside Telegram `pre` blocks, CJK ideographs, `U+3000` and fullwidth punctuation resolve to *different* fallback fonts with *different* advance widths on each client (measured live on macOS/Android), so no padding scheme can align a mixed grid everywhere — and padded grids overflow phone bubbles and wrap anyway. Force a mode with `table: 'pre' | 'records' | 'plain'`.
 

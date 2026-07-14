@@ -22,6 +22,7 @@ const resolveOptions = (options?: RenderOptions): ResolvedRenderOptions => ({
     heading: options?.heading ?? 'bold',
     hrText: options?.hrText ?? DEFAULT_HR_TEXT,
     spoiler: options?.spoiler ?? true,
+    underline: options?.underline ?? true,
     linkifyBareUrls: options?.linkifyBareUrls ?? false,
 });
 
@@ -42,6 +43,7 @@ export const renderMarkdown = (
     walkBlocks(root.children, {
         emitter,
         options: resolved,
+        source,
         quoteDepth: 0,
         listDepth: 0,
     }, '\n\n');

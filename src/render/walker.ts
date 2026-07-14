@@ -12,6 +12,7 @@ import type {
     Node,
     PhrasingContent,
     RootContent,
+    Strong,
     Table,
 } from 'mdast';
 import { match } from 'ts-pattern';
@@ -24,12 +25,15 @@ export interface WalkOptions {
     table: 'auto' | 'pre' | 'records' | 'plain';
     heading: 'bold' | 'bold-underline';
     hrText: string;
+    underline: boolean;
     linkifyBareUrls: boolean;
 }
 
 export interface WalkContext {
     emitter: Emitter;
     options: WalkOptions;
+    /** The parsed source, for details mdast drops (e.g. emphasis delimiter) */
+    source: string;
     /** >0 when inside a blockquote (blockquotes cannot nest in Telegram) */
     quoteDepth: number;
     /** nesting depth for list indentation */
@@ -173,6 +177,16 @@ const renderUnknown = (node: Node, ctx: WalkContext): void => {
     if (text) ctx.emitter.pushText(text);
 };
 
+/**
+ * Telegram MarkdownV2 dialect: '__text__' means underline, '**text**' bold.
+ * mdast strong doesn't record its delimiter, so read it back off the source.
+ */
+const strongEntityType = (node: Strong, ctx: WalkContext): 'bold' | 'underline' => {
+    if (!ctx.options.underline) return 'bold';
+    const offset = node.position?.start.offset;
+    return offset !== undefined && ctx.source[offset] === '_' ? 'underline' : 'bold';
+};
+
 const walkInlineChildren = (nodes: PhrasingContent[], ctx: WalkContext): void => {
     for (const node of nodes) walkInline(node, ctx);
 };
@@ -181,7 +195,9 @@ const walkInline = (node: PhrasingContent, ctx: WalkContext): void => {
     match(node)
         .with({ type: 'text' }, (n) => ctx.emitter.pushText(n.value))
         .with({ type: 'strong' }, (n) =>
-            wrapEntity(ctx, { type: 'bold' }, () => walkInlineChildren(n.children, ctx))
+            wrapEntity(ctx, { type: strongEntityType(n, ctx) }, () =>
+                walkInlineChildren(n.children, ctx)
+            )
         )
         .with({ type: 'emphasis' }, (n) =>
             wrapEntity(ctx, { type: 'italic' }, () => walkInlineChildren(n.children, ctx))

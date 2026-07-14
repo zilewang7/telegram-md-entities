@@ -324,6 +324,60 @@ exports[`renderMarkdown corpus snapshots > dialect-spoiler 1`] = `
 }
 `;
 
+exports[`renderMarkdown corpus snapshots > dialect-underline 1`] = `
+{
+  "entities": [
+    {
+      "length": 3,
+      "offset": 3,
+      "type": "underline",
+    },
+    {
+      "length": 2,
+      "offset": 10,
+      "type": "bold",
+    },
+    {
+      "length": 2,
+      "offset": 16,
+      "type": "italic",
+    },
+    {
+      "length": 6,
+      "offset": 24,
+      "type": "underline",
+    },
+    {
+      "length": 6,
+      "offset": 24,
+      "type": "italic",
+    },
+    {
+      "length": 11,
+      "offset": 34,
+      "type": "underline",
+    },
+    {
+      "length": 2,
+      "offset": 40,
+      "type": "bold",
+    },
+    {
+      "length": 2,
+      "offset": 45,
+      "type": "code",
+    },
+  ],
+  "text": "这是 下划线,这是 粗体,这是 斜体。
+
+组合:下划线加斜体,嵌套 下划线里有 粗体 和 代码。
+
+snake_case_variable 与 double__underscore__word 不受影响(词内下划线)。
+
+紧贴标点:__重点!__后面继续,中文__下划线__相邻。",
+}
+`;
+
 exports[`renderMarkdown corpus snapshots > edge-empty-whitespace 1`] = `
 {
   "entities": [

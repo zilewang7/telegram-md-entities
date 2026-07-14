@@ -58,6 +58,13 @@ export interface RenderOptions {
     table?: 'auto' | 'pre' | 'records' | 'plain';
     /** Heading rendering (default 'bold'; 'bold-underline' underlines h1/h2) */
     heading?: 'bold' | 'bold-underline';
+    /**
+     * Render '__text__' as underline instead of CommonMark bold (default
+     * true). Markdown has no standard underline syntax; this follows the
+     * Telegram MarkdownV2 dialect, where '__' means underline and bold is
+     * always written '**'. '_italic_' is unaffected.
+     */
+    underline?: boolean;
     /** String used in place of horizontal rules (default '———') */
     hrText?: string;
     /** Enable the ||spoiler|| dialect (default true) */
