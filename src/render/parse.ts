@@ -9,10 +9,20 @@ import type { Root } from 'mdast';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { gfmFromMarkdown } from 'mdast-util-gfm';
 import { gfm } from 'micromark-extension-gfm';
+import { spoilerFromMarkdown } from './spoiler/mdast-spoiler';
+import { spoilerSyntax } from './spoiler/micromark-spoiler';
 
-export const parseMarkdown = (markdown: string): Root => {
+export interface ParseOptions {
+    /** Enable the ||spoiler|| dialect */
+    spoiler: boolean;
+}
+
+export const parseMarkdown = (markdown: string, options: ParseOptions): Root => {
     return fromMarkdown(markdown, {
-        extensions: [gfm()],
-        mdastExtensions: [gfmFromMarkdown()],
+        extensions: [gfm(), ...(options.spoiler ? [spoilerSyntax()] : [])],
+        mdastExtensions: [
+            gfmFromMarkdown(),
+            ...(options.spoiler ? [spoilerFromMarkdown()] : []),
+        ],
     });
 };

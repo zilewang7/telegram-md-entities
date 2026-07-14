@@ -267,6 +267,61 @@ exports[`renderMarkdown corpus snapshots > cjk-emoji 1`] = `
 }
 `;
 
+exports[`renderMarkdown corpus snapshots > dialect-spoiler 1`] = `
+{
+  "entities": [
+    {
+      "length": 4,
+      "offset": 2,
+      "type": "spoiler",
+    },
+    {
+      "length": 12,
+      "offset": 16,
+      "type": "spoiler",
+    },
+    {
+      "length": 2,
+      "offset": 21,
+      "type": "bold",
+    },
+    {
+      "length": 2,
+      "offset": 26,
+      "type": "code",
+    },
+    {
+      "length": 6,
+      "offset": 32,
+      "type": "bold",
+    },
+    {
+      "length": 2,
+      "offset": 36,
+      "type": "spoiler",
+    },
+    {
+      "length": 99,
+      "offset": 104,
+      "type": "pre",
+    },
+  ],
+  "text": "这是剧透内容应该隐藏。
+
+嵌套:剧透里有 粗体 和 代码,以及 粗体里有剧透。
+
+非剧透:a || b 两侧带空格不配对,单竖线 a | b 不受影响。
+
+转义:||不是剧透|| 保持字面。
+
+表格共存:
+
+列甲 | 列乙 |            |  |  |
+---- | ---- | ---------- | - | - | ----
+     |      | 单元格剧透 |  |  | 普通",
+}
+`;
+
 exports[`renderMarkdown corpus snapshots > edge-empty-whitespace 1`] = `
 {
   "entities": [

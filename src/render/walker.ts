@@ -157,6 +157,9 @@ const walkInline = (node: PhrasingContent, ctx: WalkContext): void => {
         .with({ type: 'inlineCode' }, (n) =>
             wrapEntity(ctx, { type: 'code' }, () => ctx.emitter.pushText(n.value))
         )
+        .with({ type: 'spoiler' }, (n) =>
+            wrapEntity(ctx, { type: 'spoiler' }, () => walkInlineChildren(n.children, ctx))
+        )
         .with({ type: 'link' }, (n) => renderLink(n, ctx))
         .with({ type: 'image' }, (n) => renderImage(n, ctx))
         .with({ type: 'break' }, () => ctx.emitter.pushText('\n'))

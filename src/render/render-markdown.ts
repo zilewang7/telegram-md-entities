@@ -28,7 +28,7 @@ export const renderMarkdown = (
 ): RenderedMessage => {
     const resolved = resolveOptions(options);
 
-    const root = parseMarkdown(markdown);
+    const root = parseMarkdown(markdown, { spoiler: resolved.spoiler });
     const emitter = createEmitter();
     walkBlocks(root.children, {
         emitter,
