@@ -488,8 +488,8 @@ exports[`renderMarkdown corpus snapshots > gfm-tasklist 1`] = `
       "type": "strikethrough",
     },
   ],
-  "text": "• ☑ 已完成的事项
-• ☐ 未完成的事项,带 删除线
+  "text": "• ✅ 已完成的事项
+• ⬜ 未完成的事项,带 删除线
 • 普通项混在一起",
 }
 `;

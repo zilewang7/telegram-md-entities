@@ -124,7 +124,10 @@ const renderList = (node: List, ctx: WalkContext): void => {
     node.children.forEach((item, index) => {
         if (index > 0) ctx.emitter.pushGap('\n');
         const marker = node.ordered ? `${start + index}. ` : '• ';
-        const checkbox = item.checked === true ? '☑ ' : item.checked === false ? '☐ ' : '';
+        // ✅/⬜ (not ☑/☐): U+2611 gets emoji presentation on most clients
+        // while U+2610 stays a thin text glyph — a mixed-style ragged list.
+        // These two are both forced-emoji, same square shape, same width.
+        const checkbox = item.checked === true ? '✅ ' : item.checked === false ? '⬜ ' : '';
         ctx.emitter.pushText(indent + marker + checkbox);
         walkBlocks(item.children, inner, '\n');
     });
