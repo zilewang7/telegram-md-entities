@@ -11,6 +11,7 @@
  * entities opened right after a gap never include the gap characters.
  */
 import type { EntityType, MessageEntity, RenderedMessage } from '../types';
+import { trimMessageEdges } from '../shared/trim-message';
 import { compareEntities } from './normalize-entities';
 
 export interface EntitySpec {
@@ -104,21 +105,11 @@ export const createEmitter = (): Emitter => {
         finish: (): RenderedMessage => {
             // Defensive edge trim: raw html/code values can carry edge
             // whitespace; Telegram server-trims message edges, which would
-            // desync our offsets — trim on both sides and shift/clamp
-            // entities instead
-            const lead = text.match(/^\s+/)?.[0].length ?? 0;
-            const body = text.replace(/\s+$/, '').slice(lead);
-            const adjusted = entities
-                .map((entity) => {
-                    const start = Math.max(entity.offset - lead, 0);
-                    const end = Math.min(entity.offset + entity.length - lead, body.length);
-                    return { ...entity, offset: start, length: end - start };
-                })
-                .filter((entity) => entity.length > 0);
-
+            // desync our offsets — trim and shift/clamp entities instead
+            const trimmed = trimMessageEdges({ text, entities });
             // Canonical order: by offset, outer (longer) before inner
-            const sorted = adjusted.sort(compareEntities);
-            return { text: body, entities: sorted };
+            const sorted = [...trimmed.entities].sort(compareEntities);
+            return { text: trimmed.text, entities: sorted };
         },
     };
 };
