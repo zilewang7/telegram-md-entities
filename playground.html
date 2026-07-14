@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>telegram-md-entities playground</title>
+<style>
+    body { margin: 0; font: 14px/1.5 -apple-system, "Segoe UI", sans-serif; background: #8db6d5; }
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; height: calc(100vh - 32px); box-sizing: border-box; }
+    .pane { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+    textarea { flex: 1; resize: none; padding: 10px; font: 13px/1.5 Menlo, Consolas, monospace; border-radius: 8px; border: 1px solid #6a97b8; }
+    .output { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+    .controls { display: flex; gap: 10px; align-items: center; background: #fff; border-radius: 8px; padding: 8px 12px; }
+    .controls input[type="range"] { flex: 1; }
+    details { background: #fff; border-radius: 8px; padding: 8px 12px; }
+    pre.raw { font-size: 12px; overflow-x: auto; margin: 6px 0 0; }
+    .chunk-label { font-size: 12px; color: #245; margin: 4px 0 2px; }
+    h3 { margin: 0; color: #123; }
+</style>
+</head>
+<body>
+<div class="layout">
+    <div class="pane">
+        <h3>Markdown 输入</h3>
+        <textarea id="input"># 标题演示
+
+**粗体**、*斜体*、~~删除线~~、||剧透||、`code`。
+
+> 引用块第一行
+> 第二行
+
+```python
+print("hello")
+```
+
+| 名称 | 数量 |
+| --- | ---: |
+| 苹果 | 3 |
+
+- [x] 任务一
+- [ ] 任务二
+
+[链接](https://example.com) 与裸链接 https://example.com
+</textarea>
+        <div class="controls">
+            <label><input type="checkbox" id="streaming" /> 流式模式</label>
+            <input type="range" id="prefix" min="0" max="100" value="100" />
+            <span id="prefixLabel">100%</span>
+            <button id="play">▶ 播放</button>
+        </div>
+    </div>
+    <div class="pane">
+        <h3>渲染预览(拆分后逐条)</h3>
+        <div class="output" id="output"></div>
+        <details>
+            <summary>entities JSON</summary>
+            <pre class="raw" id="entities"></pre>
+        </details>
+        <details>
+            <summary>validate 结果</summary>
+            <pre class="raw" id="issues"></pre>
+        </details>
+    </div>
+</div>
+<script type="module">
+import {
+    renderMarkdown, splitMessage, validateMessage, toPreviewHtml, TELEGRAM_PREVIEW_CSS,
+} from './dist/browser.js';
+
+const styleTag = document.createElement('style');
+styleTag.textContent = TELEGRAM_PREVIEW_CSS;
+document.head.appendChild(styleTag);
+
+const input = document.getElementById('input');
+const output = document.getElementById('output');
+const entitiesBox = document.getElementById('entities');
+const issuesBox = document.getElementById('issues');
+const streaming = document.getElementById('streaming');
+const prefix = document.getElementById('prefix');
+const prefixLabel = document.getElementById('prefixLabel');
+const play = document.getElementById('play');
+
+const rerender = () => {
+    const full = input.value;
+    const ratio = Number(prefix.value) / 100;
+    const source = full.slice(0, Math.round(full.length * ratio));
+    prefixLabel.textContent = `${prefix.value}%`;
+
+    const rendered = renderMarkdown(source, { streaming: streaming.checked });
+    const chunks = splitMessage(rendered);
+
+    output.innerHTML = chunks
+        .map((chunk, i) => {
+            const label = chunks.length > 1 ? `<div class="chunk-label">消息 ${i + 1}/${chunks.length} · ${chunk.text.length} chars · ${chunk.entities.length} entities</div>` : '';
+            return label + toPreviewHtml(chunk, { includeStyles: false });
+        })
+        .join('');
+    entitiesBox.textContent = JSON.stringify(rendered.entities, null, 2);
+    issuesBox.textContent = JSON.stringify(validateMessage(rendered), null, 2) ;
+};
+
+input.addEventListener('input', rerender);
+streaming.addEventListener('change', rerender);
+prefix.addEventListener('input', rerender);
+
+let timer = null;
+play.addEventListener('click', () => {
+    if (timer) { clearInterval(timer); timer = null; play.textContent = '▶ 播放'; return; }
+    prefix.value = '0';
+    streaming.checked = true;
+    play.textContent = '⏸ 停止';
+    timer = setInterval(() => {
+        const next = Math.min(100, Number(prefix.value) + 2);
+        prefix.value = String(next);
+        rerender();
+        if (next >= 100) { clearInterval(timer); timer = null; play.textContent = '▶ 播放'; }
+    }, 120);
+});
+
+rerender();
+</script>
+</body>
+</html>
