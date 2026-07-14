@@ -51,6 +51,11 @@ export interface RenderOptions {
     hrText?: string;
     /** Enable the ||spoiler|| dialect (default true) */
     spoiler?: boolean;
+    /**
+     * Emit text_link entities for bare URLs (default false — Telegram
+     * clients auto-link plain URLs anyway)
+     */
+    linkifyBareUrls?: boolean;
 }
 
 export interface SplitOptions {
