@@ -91,11 +91,6 @@ exports[`renderMarkdown corpus snapshots > basic-emphasis 1`] = `
       "offset": 63,
       "type": "bold",
     },
-    {
-      "length": 10,
-      "offset": 66,
-      "type": "bold",
-    },
   ],
   "text": "这是 粗体,这是 斜体,这是 删除线,这是 行内代码。
 
@@ -116,11 +111,6 @@ exports[`renderMarkdown corpus snapshots > basic-headings 1`] = `
     {
       "length": 8,
       "offset": 13,
-      "type": "bold",
-    },
-    {
-      "length": 2,
-      "offset": 19,
       "type": "bold",
     },
     {
@@ -280,11 +270,6 @@ exports[`renderMarkdown corpus snapshots > cjk-emoji 1`] = `
 exports[`renderMarkdown corpus snapshots > edge-empty-whitespace 1`] = `
 {
   "entities": [
-    {
-      "length": 3,
-      "offset": 20,
-      "type": "bold",
-    },
     {
       "length": 3,
       "offset": 20,

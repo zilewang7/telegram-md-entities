@@ -11,6 +11,7 @@
  * entities opened right after a gap never include the gap characters.
  */
 import type { EntityType, MessageEntity, RenderedMessage } from '../types';
+import { compareEntities } from './normalize-entities';
 
 export interface EntitySpec {
     type: EntityType;
@@ -101,22 +102,23 @@ export const createEmitter = (): Emitter => {
         cursor: (): number => text.length,
 
         finish: (): RenderedMessage => {
-            // Defensive edge trim: raw html/code values can carry trailing
+            // Defensive edge trim: raw html/code values can carry edge
             // whitespace; Telegram server-trims message edges, which would
-            // desync our offsets — trim here and clamp entities instead
-            const trimmed = text.replace(/\s+$/, '');
-            const clamped = entities
+            // desync our offsets — trim on both sides and shift/clamp
+            // entities instead
+            const lead = text.match(/^\s+/)?.[0].length ?? 0;
+            const body = text.replace(/\s+$/, '').slice(lead);
+            const adjusted = entities
                 .map((entity) => {
-                    const end = Math.min(entity.offset + entity.length, trimmed.length);
-                    return { ...entity, length: end - entity.offset };
+                    const start = Math.max(entity.offset - lead, 0);
+                    const end = Math.min(entity.offset + entity.length - lead, body.length);
+                    return { ...entity, offset: start, length: end - start };
                 })
                 .filter((entity) => entity.length > 0);
 
-            // Stable order: by offset, outer (longer) before inner
-            const sorted = clamped.sort(
-                (a, b) => a.offset - b.offset || b.length - a.length
-            );
-            return { text: trimmed, entities: sorted };
+            // Canonical order: by offset, outer (longer) before inner
+            const sorted = adjusted.sort(compareEntities);
+            return { text: body, entities: sorted };
         },
     };
 };

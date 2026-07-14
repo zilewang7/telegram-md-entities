@@ -4,6 +4,7 @@
 import type { RenderOptions, RenderedMessage } from '../types';
 import { DEFAULT_HR_TEXT } from '../constants';
 import { createEmitter } from './emitter';
+import { normalizeEntities } from './normalize-entities';
 import { parseMarkdown } from './parse';
 import { walkBlocks, type WalkOptions } from './walker';
 
@@ -36,5 +37,6 @@ export const renderMarkdown = (
         listDepth: 0,
     }, '\n\n');
 
-    return emitter.finish();
+    const { text, entities } = emitter.finish();
+    return { text, entities: normalizeEntities(entities) };
 };

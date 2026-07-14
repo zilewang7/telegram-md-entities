@@ -1,5 +1,6 @@
 import { expect } from 'vitest';
 import type { RenderedMessage } from '../../src/types';
+import { validateMessage } from '../../src/validate/validate-message';
 
 /** True when position i falls between the two halves of a surrogate pair */
 const splitsSurrogatePair = (text: string, i: number): boolean =>
@@ -16,6 +17,14 @@ export const expectWellFormed = ({ text, entities }: RenderedMessage): void => {
         expect(splitsSurrogatePair(text, entity.offset)).toBe(false);
         expect(splitsSurrogatePair(text, entity.offset + entity.length)).toBe(false);
     }
-    // Output never carries leading/trailing block gaps
-    expect(text).toBe(text.replace(/^\n+/, '').replace(/\n+$/, ''));
+    // Output never carries edge whitespace (server would trim it and
+    // desync every entity offset)
+    expect(text).toBe(text.trim());
+
+    // Bot API rules hold (ignore text-too-long: renders may legitimately be
+    // longer than one message before splitMessage runs)
+    const issues = validateMessage({ text, entities }).filter(
+        (issue) => issue.code !== 'text-too-long'
+    );
+    expect(issues).toEqual([]);
 };
