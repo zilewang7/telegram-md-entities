@@ -3,15 +3,15 @@
 exports[`splitMessage snapshots > splits repeated real corpus into shaped chunks 1`] = `
 [
   {
-    "entityCount": 9,
-    "head": "这可是非常有名的节奏音游**《节奏天",
-    "length": 883,
+    "entityCount": 11,
+    "head": "这可是非常有名的节奏音游《节奏天国》",
+    "length": 875,
     "tail": "去的列车)呢!🚄✨ 祝一路平安哦!",
   },
   {
-    "entityCount": 9,
-    "head": "这可是非常有名的节奏音游**《节奏天",
-    "length": 883,
+    "entityCount": 11,
+    "head": "这可是非常有名的节奏音游《节奏天国》",
+    "length": 875,
     "tail": "去的列车)呢!🚄✨ 祝一路平安哦!",
   },
 ]

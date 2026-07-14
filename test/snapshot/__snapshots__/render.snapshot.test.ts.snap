@@ -87,8 +87,13 @@ exports[`renderMarkdown corpus snapshots > basic-emphasis 1`] = `
       "type": "bold",
     },
     {
-      "length": 15,
+      "length": 3,
       "offset": 63,
+      "type": "bold",
+    },
+    {
+      "length": 2,
+      "offset": 76,
       "type": "bold",
     },
   ],
@@ -226,36 +231,46 @@ exports[`renderMarkdown corpus snapshots > cjk-emoji 1`] = `
 {
   "entities": [
     {
+      "length": 5,
+      "offset": 14,
+      "type": "bold",
+    },
+    {
       "length": 4,
-      "offset": 40,
+      "offset": 36,
       "type": "bold",
     },
     {
       "length": 7,
-      "offset": 47,
+      "offset": 43,
       "type": "italic",
     },
     {
       "length": 6,
-      "offset": 63,
+      "offset": 59,
       "type": "bold",
     },
     {
       "length": 3,
-      "offset": 85,
+      "offset": 66,
+      "type": "bold",
+    },
+    {
+      "length": 3,
+      "offset": 77,
       "type": "bold",
     },
     {
       "length": 11,
-      "offset": 114,
+      "offset": 106,
       "type": "code",
     },
   ],
-  "text": "emoji 紧邻实体:🎸 **来啦来啦!**帮你查清楚啦~🔍
+  "text": "emoji 紧邻实体:🎸 来啦来啦!帮你查清楚啦~🔍
 
 代理对内部:前😂后 与 斜体🚗✨结尾
 
-全角标点交界:"引号内容"、**重点:**后接文字,以及 感叹! 收尾。
+全角标点交界:"引号内容"、重点:后接文字,以及 感叹! 收尾。
 
 拼接:🧧🧧🧧连续 emoji 后 code🎤block 行内。",
 }
@@ -476,12 +491,17 @@ exports[`renderMarkdown corpus snapshots > real-rhythm-game 1`] = `
 {
   "entities": [
     {
-      "length": 39,
-      "offset": 20,
+      "length": 6,
+      "offset": 12,
+      "type": "bold",
+    },
+    {
+      "length": 6,
+      "offset": 57,
       "type": "bold",
     },
   ],
-  "text": "这可是非常有名的节奏音游**《节奏天国》(Rhythm Heaven)呀!🎵✨ 截图里显示的正好是游戏里极具挑战性的"混奏 8"**关卡的选关界面呢!🏆
+  "text": "这可是非常有名的节奏音游《节奏天国》(Rhythm Heaven)呀!🎵✨ 截图里显示的正好是游戏里极具挑战性的"混奏 8"关卡的选关界面呢!🏆
 
 看到这个游戏,我瞬间就完全懂了前面那些爆笑吐槽是怎么回事啦!😂 在《节奏天国》里,玩家必须严格跟着音乐节拍按键。如果一旦按错、慢半拍或者漏拍,和你同台演出的 NPC "队友"们(比如不倒翁、打伞的鸟、跳舞的小人、小螃蟹等)就会立刻齐刷刷地转过头来死死盯着你,头顶还会冒出大大的问号,表情超级嫌弃和无语!😒❓
 
@@ -495,47 +515,52 @@ exports[`renderMarkdown corpus snapshots > real-train-ticket 1`] = `
 {
   "entities": [
     {
+      "length": 6,
+      "offset": 12,
+      "type": "bold",
+    },
+    {
       "length": 2,
-      "offset": 84,
+      "offset": 80,
       "type": "bold",
     },
     {
       "length": 3,
-      "offset": 106,
+      "offset": 102,
       "type": "bold",
     },
     {
       "length": 4,
-      "offset": 151,
+      "offset": 147,
       "type": "bold",
     },
     {
       "length": 1,
-      "offset": 168,
+      "offset": 164,
       "type": "bold",
     },
     {
       "length": 4,
-      "offset": 180,
+      "offset": 176,
       "type": "bold",
     },
     {
       "length": 2,
-      "offset": 257,
+      "offset": 253,
       "type": "bold",
     },
     {
       "length": 5,
-      "offset": 279,
+      "offset": 275,
       "type": "bold",
     },
     {
       "length": 4,
-      "offset": 336,
+      "offset": 332,
       "type": "bold",
     },
   ],
-  "text": "这看起来是一张中国铁路的**"客运记录"**单据哦!🚆 主要是列车工作人员用来记录和交接特殊情况的📝。
+  "text": "这看起来是一张中国铁路的"客运记录"单据哦!🚆 主要是列车工作人员用来记录和交接特殊情况的📝。
 
 我努力帮你辨认了一下上面手写的内容,大概是这样的:
 

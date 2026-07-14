@@ -39,3 +39,9 @@ export const displayWidth = (value: string): number => {
     }
     return width;
 };
+
+/** First code point is East Asian Wide (CJK ideographs, kana, fullwidth…) */
+export const isWideChar = (char: string): boolean => {
+    const codePoint = char.codePointAt(0);
+    return codePoint !== undefined && isWide(codePoint);
+};

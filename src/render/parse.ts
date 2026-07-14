@@ -8,6 +8,8 @@
 import type { Root } from 'mdast';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { gfmFromMarkdown } from 'mdast-util-gfm';
+import { cjkFriendlyExtension } from 'micromark-extension-cjk-friendly';
+import { gfmStrikethroughCjkFriendly } from 'micromark-extension-cjk-friendly-gfm-strikethrough';
 import { gfm } from 'micromark-extension-gfm';
 import { spoilerFromMarkdown } from './spoiler/mdast-spoiler';
 import { spoilerSyntax } from './spoiler/micromark-spoiler';
@@ -19,7 +21,15 @@ export interface ParseOptions {
 
 export const parseMarkdown = (markdown: string, options: ParseOptions): Root => {
     return fromMarkdown(markdown, {
-        extensions: [gfm(), ...(options.spoiler ? [spoilerSyntax()] : [])],
+        // cjk-friendly fixes CommonMark's flanking rules around fullwidth
+        // punctuation (e.g. 的**"重点"**后 stays bold) — essential for
+        // Chinese/Japanese/Korean LLM output
+        extensions: [
+            gfm(),
+            cjkFriendlyExtension(),
+            gfmStrikethroughCjkFriendly(),
+            ...(options.spoiler ? [spoilerSyntax()] : []),
+        ],
         mdastExtensions: [
             gfmFromMarkdown(),
             ...(options.spoiler ? [spoilerFromMarkdown()] : []),

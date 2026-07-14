@@ -23,11 +23,15 @@ const wrapTag = (entity: MessageEntity, inner: string): string =>
         .with('strikethrough', () => `<s>${inner}</s>`)
         .with('spoiler', () => `<span class="tg-spoiler">${inner}</span>`)
         .with('code', () => `<code>${inner}</code>`)
-        .with(
-            'pre',
-            () =>
-                `<pre><code${entity.language ? ` class="language-${escapeHtml(entity.language)}"` : ''}>${inner}</code></pre>`
-        )
+        .with('pre', () => {
+            const header = entity.language
+                ? `<div class="tg-pre-header">${escapeHtml(entity.language)}</div>`
+                : '';
+            const codeClass = entity.language
+                ? ` class="language-${escapeHtml(entity.language)}"`
+                : '';
+            return `<pre>${header}<code${codeClass}>${inner}</code></pre>`;
+        })
         .with(
             'text_link',
             () => `<a href="${escapeHtml(entity.url ?? '')}" target="_blank">${inner}</a>`
@@ -72,7 +76,11 @@ export const toPreviewHtml = (
 ): string => {
     const includeStyles = options?.includeStyles ?? true;
     const tree = buildEntityTree(message.entities);
-    const body = renderSpan(message.text, 0, message.text.length, tree);
+    // Block-level wrappers (pre/blockquote) bring their own spacing; swallow
+    // one adjacent separator newline so pre-wrap doesn't double the gap
+    const body = renderSpan(message.text, 0, message.text.length, tree)
+        .replace(/\n(<(?:pre|blockquote)\b)/g, '$1')
+        .replace(/(<\/(?:pre|blockquote)>)\n/g, '$1');
     const messageHtml = `<div class="tg-message">${body}</div>`;
     return includeStyles
         ? `<style>${TELEGRAM_PREVIEW_CSS}</style>\n${messageHtml}`

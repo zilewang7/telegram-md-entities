@@ -20,6 +20,8 @@ export interface InlineTailScan {
     openStack: OpenInline[];
 }
 
+import { isWideChar } from '../render/east-asian-width';
+
 const isWhitespace = (char: string): boolean => char === '' || /\s/u.test(char);
 const isPunctuation = (char: string): boolean =>
     char !== '' && /[\p{P}\p{S}]/u.test(char);
@@ -29,12 +31,25 @@ interface Flanking {
     canClose: boolean;
 }
 
-/** CommonMark delimiter-run flanking; '' stands for start/end of text */
+/**
+ * CommonMark delimiter-run flanking with the cjk-friendly relaxation the
+ * parser uses (micromark-extension-cjk-friendly): a neighboring CJK
+ * character satisfies the punctuation-exception, so 的**"重点"** opens.
+ * '' stands for start/end of text.
+ */
 const classifyRun = (marker: '*' | '_', before: string, after: string): Flanking => {
     const leftFlanking =
-        !isWhitespace(after) && (!isPunctuation(after) || isWhitespace(before) || isPunctuation(before));
+        !isWhitespace(after) &&
+        (!isPunctuation(after) ||
+            isWhitespace(before) ||
+            isPunctuation(before) ||
+            isWideChar(before));
     const rightFlanking =
-        !isWhitespace(before) && (!isPunctuation(before) || isWhitespace(after) || isPunctuation(after));
+        !isWhitespace(before) &&
+        (!isPunctuation(before) ||
+            isWhitespace(after) ||
+            isPunctuation(after) ||
+            isWideChar(after));
 
     if (marker === '*') {
         return { canOpen: leftFlanking, canClose: rightFlanking };
@@ -46,10 +61,12 @@ const classifyRun = (marker: '*' | '_', before: string, after: string): Flanking
     };
 };
 
-/** Two-class flanking for ~~ and || (mirrors gfm-strikethrough) */
+/** Two-class flanking for ~~ and || (gfm-strikethrough + cjk relaxation) */
 const classifyToggle = (before: string, after: string): Flanking => {
-    const beforeClass = isWhitespace(before) ? 1 : isPunctuation(before) ? 2 : 0;
-    const afterClass = isWhitespace(after) ? 1 : isPunctuation(after) ? 2 : 0;
+    const classify = (char: string): number =>
+        isWhitespace(char) ? 1 : isPunctuation(char) || isWideChar(char) ? 2 : 0;
+    const beforeClass = classify(before);
+    const afterClass = classify(after);
     return {
         canOpen: afterClass === 0 || (afterClass === 2 && beforeClass !== 0),
         canClose: beforeClass === 0 || (beforeClass === 2 && afterClass !== 0),
