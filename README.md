@@ -13,13 +13,19 @@ const { text, entities } = renderMarkdown(llmOutput);
 await bot.api.sendMessage(chatId, text, { entities }); // grammy / telegraf / raw HTTP — same shape
 ```
 
+<p align="center">
+  <img src="assets/streaming-demo.webp" width="840" alt="Left: an LLM emitting raw markdown token by token. Right: the same message rendered live in Telegram via entities.">
+</p>
+
+*Raw LLM tokens on the left, the Telegram message on the right, re-rendered with `{ streaming: true }` on **every token**: half-typed `**bold` is already bold, an unclosed ` ``` ` fence is already a live code block with its language header, and the final frame is byte-identical to the strict render. In production, Telegram flood control caps `editMessageText` at roughly one edit per second per chat (≈20/min in groups) — every throttled edit is simply one of these frames, and Telegram clients animate edits, so the stream still feels smooth in the app. (Recorded through the library's own Telegram-calibrated preview renderer — regenerate with `pnpm demo`.)*
+
 ## Why entities instead of MarkdownV2 strings
 
 | MarkdownV2 string pipeline | this library |
 |---|---|
 | 18 characters need escaping; one miss = HTTP 400 | nothing is ever escaped |
 | `can't parse entities` needs fallback chains | structurally impossible |
-| code block language lost | `pre.language` preserved (syntax highlighting) |
+| `` ` `` and `\` inside code blocks still need escaping | code content is passed through verbatim |
 | visible length = guesswork through the parser | `text.length` is exact (UTF-16, what Telegram counts) |
 | splitting breaks formatting at boundaries | entities close & reopen across chunks seamlessly |
 | tables become a wall of `\|` | ASCII tables → aligned `pre` grids; CJK tables → clean record lines |
@@ -71,6 +77,7 @@ Rules discovered and verified against api.telegram.org (see `test/e2e/`):
 - `pnpm test:probe` / `pnpm test:differential` — one-time entity-cap probe & string-pipeline comparison
 - `pnpm visual` — headless-chromium screenshot gallery (`test/visual/screenshots/`): every corpus fixture, streaming frame sequences, and split chunks rendered through the Telegram-calibrated preview for eyeball/visual-diff review
 - `pnpm playground` — local playground with live preview, split view and a streaming simulator
+- `pnpm demo` — regenerates the animated streaming demo at the top of this README
 
 ## License
 
