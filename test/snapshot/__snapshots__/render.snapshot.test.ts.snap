@@ -1,0 +1,521 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`renderMarkdown corpus snapshots > basic-code 1`] = `
+{
+  "entities": [
+    {
+      "language": "python",
+      "length": 57,
+      "offset": 10,
+      "type": "pre",
+    },
+    {
+      "length": 11,
+      "offset": 75,
+      "type": "pre",
+    },
+    {
+      "length": 4,
+      "offset": 91,
+      "type": "code",
+    },
+    {
+      "length": 3,
+      "offset": 104,
+      "type": "code",
+    },
+  ],
+  "text": "带语言的代码块:
+
+def hello():
+    print("你好")  # comment with **not bold**
+
+无语言:
+
+plain block
+
+行内 code 与包含反引号的 a\`b 写法。",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > basic-emphasis 1`] = `
+{
+  "entities": [
+    {
+      "length": 2,
+      "offset": 3,
+      "type": "bold",
+    },
+    {
+      "length": 2,
+      "offset": 9,
+      "type": "italic",
+    },
+    {
+      "length": 3,
+      "offset": 15,
+      "type": "strikethrough",
+    },
+    {
+      "length": 4,
+      "offset": 22,
+      "type": "code",
+    },
+    {
+      "length": 12,
+      "offset": 32,
+      "type": "bold",
+    },
+    {
+      "length": 2,
+      "offset": 37,
+      "type": "italic",
+    },
+    {
+      "length": 2,
+      "offset": 42,
+      "type": "code",
+    },
+    {
+      "length": 7,
+      "offset": 48,
+      "type": "italic",
+    },
+    {
+      "length": 2,
+      "offset": 53,
+      "type": "bold",
+    },
+    {
+      "length": 15,
+      "offset": 63,
+      "type": "bold",
+    },
+    {
+      "length": 10,
+      "offset": 66,
+      "type": "bold",
+    },
+  ],
+  "text": "这是 粗体,这是 斜体,这是 删除线,这是 行内代码。
+
+嵌套:粗体里有 斜体 和 代码,以及 斜体里有 粗体。
+
+紧贴标点:重点!后面继续,("括号里加粗")。",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > basic-headings 1`] = `
+{
+  "entities": [
+    {
+      "length": 4,
+      "offset": 0,
+      "type": "bold",
+    },
+    {
+      "length": 8,
+      "offset": 13,
+      "type": "bold",
+    },
+    {
+      "length": 2,
+      "offset": 19,
+      "type": "bold",
+    },
+    {
+      "length": 4,
+      "offset": 23,
+      "type": "bold",
+    },
+  ],
+  "text": "一级标题
+
+开头段落。
+
+二级标题带 粗体
+
+三级标题
+
+正文继续,标题应渲染为粗体一行。",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > basic-links 1`] = `
+{
+  "entities": [
+    {
+      "length": 4,
+      "offset": 5,
+      "type": "text_link",
+      "url": "https://zh.wikipedia.org/wiki/主页",
+    },
+    {
+      "length": 6,
+      "offset": 57,
+      "type": "text_link",
+      "url": "https://www.example.com/path",
+    },
+    {
+      "length": 2,
+      "offset": 153,
+      "type": "text_link",
+      "url": "mailto:a@b.c",
+    },
+  ],
+  "text": "行内链接 维基百科 常规形态。
+
+标签即链接 https://example.com 应退化为纯文本。
+
+无协议 www 链接 应补 https。
+
+相对路径 说明 (docs/readme.md) 无法成为实体,保留信息。
+
+自动链接 https://auto.example.com 与 mailto 写信。",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > basic-lists 1`] = `
+{
+  "entities": [
+    {
+      "length": 2,
+      "offset": 20,
+      "type": "bold",
+    },
+  ],
+  "text": "无序列表:
+
+• 第一项
+• 第二项带 粗体
+    • 嵌套子项
+    • 另一个子项
+• 第三项
+
+有序列表:
+
+3. 从三开始
+4. 第四项
+    1. 嵌套有序
+5. 第五项
+
+列表项里多个块:
+
+• 首段
+继续行(软换行)",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > basic-quote 1`] = `
+{
+  "entities": [
+    {
+      "length": 15,
+      "offset": 0,
+      "type": "blockquote",
+    },
+    {
+      "length": 30,
+      "offset": 24,
+      "type": "blockquote",
+    },
+    {
+      "length": 2,
+      "offset": 38,
+      "type": "bold",
+    },
+  ],
+  "text": "单段引用,第一行
+软换行第二行
+
+正文分隔。
+
+引用第一段
+
+引用第二段带 粗体
+
+嵌套引用应被扁平化进外层",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > cjk-emoji 1`] = `
+{
+  "entities": [
+    {
+      "length": 4,
+      "offset": 40,
+      "type": "bold",
+    },
+    {
+      "length": 7,
+      "offset": 47,
+      "type": "italic",
+    },
+    {
+      "length": 6,
+      "offset": 63,
+      "type": "bold",
+    },
+    {
+      "length": 3,
+      "offset": 85,
+      "type": "bold",
+    },
+    {
+      "length": 11,
+      "offset": 114,
+      "type": "code",
+    },
+  ],
+  "text": "emoji 紧邻实体:🎸 **来啦来啦!**帮你查清楚啦~🔍
+
+代理对内部:前😂后 与 斜体🚗✨结尾
+
+全角标点交界:"引号内容"、**重点:**后接文字,以及 感叹! 收尾。
+
+拼接:🧧🧧🧧连续 emoji 后 code🎤block 行内。",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > edge-empty-whitespace 1`] = `
+{
+  "entities": [
+    {
+      "length": 3,
+      "offset": 20,
+      "type": "bold",
+    },
+    {
+      "length": 3,
+      "offset": 20,
+      "type": "bold",
+    },
+  ],
+  "text": "开头有空行。
+
+结尾也有空行,以及一个 空强调 形态。",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > edge-hr 1`] = `
+{
+  "entities": [],
+  "text": "前文结束。
+
+———
+
+中段内容。
+
+———
+
+又一段(星号分隔线)。
+
+———
+
+结尾(下划线分隔线)。",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > edge-html 1`] = `
+{
+  "entities": [],
+  "text": "行内 <b>HTML 标签</b> 应按原文保留为文本。
+
+<div>块级 HTML</div>
+
+含 <br/> 的行。",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > edge-nesting 1`] = `
+{
+  "entities": [
+    {
+      "length": 18,
+      "offset": 0,
+      "type": "blockquote",
+    },
+    {
+      "length": 8,
+      "offset": 5,
+      "type": "bold",
+    },
+    {
+      "length": 2,
+      "offset": 8,
+      "type": "text_link",
+      "url": "https://example.com",
+    },
+    {
+      "length": 2,
+      "offset": 16,
+      "type": "code",
+    },
+    {
+      "length": 6,
+      "offset": 27,
+      "type": "bold",
+    },
+    {
+      "length": 2,
+      "offset": 31,
+      "type": "italic",
+    },
+    {
+      "length": 8,
+      "offset": 41,
+      "type": "bold",
+    },
+    {
+      "length": 4,
+      "offset": 45,
+      "type": "text_link",
+      "url": "https://example.com/x",
+    },
+    {
+      "length": 6,
+      "offset": 52,
+      "type": "text_link",
+      "url": "https://example.com/y",
+    },
+    {
+      "length": 2,
+      "offset": 56,
+      "type": "bold",
+    },
+  ],
+  "text": "引用里的 粗体 链接 收尾 与 代码
+
+• 列表项里 粗体带 斜体
+• 项目二
+
+加粗的 整个链接 与 链接里 加粗。",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > gfm-autolink 1`] = `
+{
+  "entities": [],
+  "text": "直接贴 https://example.com/a_(b)?q=1&x=2 裸链接,客户端会自动识别。
+
+结尾带标点的 https://example.com/path。中文句号不应吞进链接。
+
+www.example.org 裸 www 形态。",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > gfm-table 1`] = `
+{
+  "entities": [
+    {
+      "length": 163,
+      "offset": 0,
+      "type": "pre",
+    },
+  ],
+  "text": "名称                | 数量 |  单价
+------------------- | ---- | ------
+苹果                |    3 |  ¥5.5
+香蕉(进口)          |   12 |   ¥3
+longer english cell |    1 | $10.00
+
+表格后正文。",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > gfm-tasklist 1`] = `
+{
+  "entities": [
+    {
+      "length": 3,
+      "offset": 24,
+      "type": "strikethrough",
+    },
+  ],
+  "text": "• ☑ 已完成的事项
+• ☐ 未完成的事项,带 删除线
+• 普通项混在一起",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > real-rhythm-game 1`] = `
+{
+  "entities": [
+    {
+      "length": 39,
+      "offset": 20,
+      "type": "bold",
+    },
+  ],
+  "text": "这可是非常有名的节奏音游**《节奏天国》(Rhythm Heaven)呀!🎵✨ 截图里显示的正好是游戏里极具挑战性的"混奏 8"**关卡的选关界面呢!🏆
+
+看到这个游戏,我瞬间就完全懂了前面那些爆笑吐槽是怎么回事啦!😂 在《节奏天国》里,玩家必须严格跟着音乐节拍按键。如果一旦按错、慢半拍或者漏拍,和你同台演出的 NPC "队友"们(比如不倒翁、打伞的鸟、跳舞的小人、小螃蟹等)就会立刻齐刷刷地转过头来死死盯着你,头顶还会冒出大大的问号,表情超级嫌弃和无语!😒❓
+
+所以那位叫「某同学」的朋友,绝对是因为在闯关的时候疯狂漏拍,导致一直在被游戏里的 NPC 疯狂甩脸色和"阴阳怪气"啦!🤣🤣🤣 难怪他会抱怨队友"脸太臭"、"一点也不包容"、"动不动给脸色"!
+
+结合最近刚出的带有多人联机模式的《节奏天国》新作,出现"为什么肘不到4号"这种相爱相杀的发言也就非常合理了!快让你这位朋友好好戴上耳机练练节奏感吧,不然 NPC 队友们又要被气到当场退团啦!🎧💃✨",
+}
+`;
+
+exports[`renderMarkdown corpus snapshots > real-train-ticket 1`] = `
+{
+  "entities": [
+    {
+      "length": 2,
+      "offset": 84,
+      "type": "bold",
+    },
+    {
+      "length": 3,
+      "offset": 106,
+      "type": "bold",
+    },
+    {
+      "length": 4,
+      "offset": 151,
+      "type": "bold",
+    },
+    {
+      "length": 1,
+      "offset": 168,
+      "type": "bold",
+    },
+    {
+      "length": 4,
+      "offset": 180,
+      "type": "bold",
+    },
+    {
+      "length": 2,
+      "offset": 257,
+      "type": "bold",
+    },
+    {
+      "length": 5,
+      "offset": 279,
+      "type": "bold",
+    },
+    {
+      "length": 4,
+      "offset": 336,
+      "type": "bold",
+    },
+  ],
+  "text": "这看起来是一张中国铁路的**"客运记录"**单据哦!🚆 主要是列车工作人员用来记录和交接特殊情况的📝。
+
+我努力帮你辨认了一下上面手写的内容,大概是这样的:
+
+• 抬头:某铁路局 某某车站、列车段 🏢
+• 右上角:可能是车次编号(字迹有点飘逸,类似"第G138"或"D6138"之类的)🚅
+• 记录事由:移交误乘旅客 🧳
+• 致:某某南站 🚉
+• 正文部分:
+"2026年7月12日、"
+(中间打了厚厚的马赛克)"……至某某南"
+(中间有马赛克)"……本段某某南站下车,现交站,请按章办理。"📜
+• 附件:(打了马赛克)"……一张" 📎
+• 右下角落款:盖有"某局集团公司某某客运段"的红章,并且有工作人员签字,编制日期是"2026年7月12日" 📅
+
+总结一下:这应该是一位旅客(可能就是发图的小伙伴自己呀🤭)坐错车或者坐过站啦!列车长开具了这张证明,把旅客交接给"某某南站"的工作人员,让车站按照规定帮忙处理(一般是安排免费坐回去的列车)呢!🚄✨ 祝一路平安哦!",
+}
+`;

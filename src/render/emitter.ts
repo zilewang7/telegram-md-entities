@@ -71,10 +71,12 @@ export const createEmitter = (): Emitter => {
         },
 
         openEntity: (spec: EntitySpec): EntityHandle => {
-            flushGap();
+            // Do NOT flush the pending gap: if the entity ends up empty the
+            // gap must stay unflushed (no dangling separators). Record the
+            // position content WILL land at once the gap flushes instead.
             const id = nextId;
             nextId += 1;
-            openEntities.set(id, { spec, start: text.length });
+            openEntities.set(id, { spec, start: text.length + pendingGap.length });
             return { id };
         },
 
@@ -99,11 +101,22 @@ export const createEmitter = (): Emitter => {
         cursor: (): number => text.length,
 
         finish: (): RenderedMessage => {
+            // Defensive edge trim: raw html/code values can carry trailing
+            // whitespace; Telegram server-trims message edges, which would
+            // desync our offsets — trim here and clamp entities instead
+            const trimmed = text.replace(/\s+$/, '');
+            const clamped = entities
+                .map((entity) => {
+                    const end = Math.min(entity.offset + entity.length, trimmed.length);
+                    return { ...entity, length: end - entity.offset };
+                })
+                .filter((entity) => entity.length > 0);
+
             // Stable order: by offset, outer (longer) before inner
-            const sorted = [...entities].sort(
+            const sorted = clamped.sort(
                 (a, b) => a.offset - b.offset || b.length - a.length
             );
-            return { text, entities: sorted };
+            return { text: trimmed, entities: sorted };
         },
     };
 };
