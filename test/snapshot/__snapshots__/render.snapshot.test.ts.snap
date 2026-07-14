@@ -462,15 +462,15 @@ exports[`renderMarkdown corpus snapshots > edge-hr 1`] = `
   "entities": [],
   "text": "前文结束。
 
-———
+——————————
 
 中段内容。
 
-———
+——————————
 
 又一段(星号分隔线)。
 
-———
+——————————
 
 结尾(下划线分隔线)。",
 }

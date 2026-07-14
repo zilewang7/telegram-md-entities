@@ -65,7 +65,7 @@ export interface RenderOptions {
      * always written '**'. '_italic_' is unaffected.
      */
     underline?: boolean;
-    /** String used in place of horizontal rules (default '———') */
+    /** String used in place of horizontal rules (default: a 10-em-dash line) */
     hrText?: string;
     /** Enable the ||spoiler|| dialect (default true) */
     spoiler?: boolean;

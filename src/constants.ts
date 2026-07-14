@@ -9,5 +9,11 @@ export const DEFAULT_MAX_LENGTH = 4096;
  */
 export const DEFAULT_MAX_ENTITIES = 90;
 
-/** Default replacement text for markdown horizontal rules */
-export const DEFAULT_HR_TEXT = '———';
+/**
+ * Default replacement text for markdown horizontal rules. Em dashes join
+ * into a solid line in every Telegram client font (unlike U+2500 box
+ * drawing, whose East-Asian-Ambiguous width breaks on CJK font fallbacks);
+ * 10 of them read as a real divider yet stay well below wrap width even on
+ * narrow phones with large accessibility fonts.
+ */
+export const DEFAULT_HR_TEXT = '——————————';
