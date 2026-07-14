@@ -17,15 +17,24 @@ import type {
 } from 'mdast';
 import { match } from 'ts-pattern';
 import type { EntitySpec, Emitter } from './emitter';
+import {
+    cleanDetailsFragment,
+    extractLeadingSummary,
+    scanForDetailsClose,
+    stripDetailsOpenTag,
+} from './details';
+import { parseMarkdown } from './parse';
 import { alignedTableText, plainTableText, tableToCells } from './table';
 import { tableHasWideContent, tableToRecordLines } from './table-records';
 import { plainTextOfNodes } from './plain-text';
 
 export interface WalkOptions {
+    streaming: boolean;
     table: 'auto' | 'pre' | 'records' | 'plain';
     heading: 'bold' | 'bold-underline';
     hrText: string;
     underline: boolean;
+    spoiler: boolean;
     linkifyBareUrls: boolean;
 }
 
@@ -247,9 +256,156 @@ const walkBlock = (node: RootContent, ctx: WalkContext): void => {
         .otherwise((n) => renderUnknown(n, ctx));
 };
 
+type DetailsPart =
+    | { kind: 'fragment'; markdown: string }
+    | { kind: 'block'; node: RootContent };
+
+interface DetailsScan {
+    /** Inner markdown of <summary> — the bold header line — or null */
+    summary: string | null;
+    /** Element content, in order: raw html-block slices & regular mdast blocks */
+    parts: DetailsPart[];
+    /** Markdown after </details> that shared the closing html block */
+    trailing: string;
+    /** No </details> found (streaming buffer or malformed document) */
+    unclosed: boolean;
+    /** Sibling index right after the element */
+    nextIndex: number;
+}
+
+/**
+ * Recognize a <details> element starting at nodes[index]. Contiguous lines
+ * share the opening html block; blank-line-separated markdown inside parses
+ * as regular sibling blocks, so scan forward until the html block carrying
+ * the matching </details> (nested elements tracked by depth).
+ */
+const scanDetails = (nodes: RootContent[], index: number): DetailsScan | null => {
+    const opening = nodes[index];
+    if (opening === undefined || opening.type !== 'html') return null;
+    const afterOpen = stripDetailsOpenTag(opening.value);
+    if (afterOpen === null) return null;
+
+    const parts: DetailsPart[] = [];
+    let summary: string | null = null;
+    const pushFragment = (markdown: string): void => {
+        if (markdown.trim() !== '') parts.push({ kind: 'fragment', markdown });
+    };
+    const takeSummary = (raw: string): string => {
+        const extracted = extractLeadingSummary(raw);
+        if (extracted === null) return raw;
+        summary = extracted.summary;
+        return extracted.rest;
+    };
+
+    const body = takeSummary(afterOpen);
+    const bodyScan = scanForDetailsClose(body, 0);
+    if (bodyScan.closed) {
+        pushFragment(bodyScan.inside);
+        return { summary, parts, trailing: bodyScan.after, unclosed: false, nextIndex: index + 1 };
+    }
+    pushFragment(body);
+    let depth = bodyScan.depth;
+
+    let nextIndex = index + 1;
+    while (nextIndex < nodes.length) {
+        const node = nodes[nextIndex];
+        if (node === undefined) break;
+        if (node.type !== 'html') {
+            parts.push({ kind: 'block', node });
+            nextIndex += 1;
+            continue;
+        }
+        // A blank line may separate <summary> from <details>: it then arrives
+        // as the first content-bearing sibling instead of the opening block
+        const value = summary === null && parts.length === 0 ? takeSummary(node.value) : node.value;
+        const siblingScan = scanForDetailsClose(value, depth);
+        if (siblingScan.closed) {
+            pushFragment(siblingScan.inside);
+            return {
+                summary,
+                parts,
+                trailing: siblingScan.after,
+                unclosed: false,
+                nextIndex: nextIndex + 1,
+            };
+        }
+        pushFragment(value);
+        depth = siblingScan.depth;
+        nextIndex += 1;
+    }
+    return { summary, parts, trailing: '', unclosed: true, nextIndex };
+};
+
+/** Parse a raw slice as standalone markdown and emit it in place */
+const renderRawFragment = (markdown: string, ctx: WalkContext, gap: BlockGap): void => {
+    if (markdown === '') return;
+    const root = parseMarkdown(markdown, { spoiler: ctx.options.spoiler });
+    // Positions in the re-parsed tree refer to the fragment string
+    walkBlocks(root.children, { ...ctx, source: markdown }, gap);
+};
+
+const renderDetails = (scan: DetailsScan, ctx: WalkContext): void => {
+    // A trailing half-typed tag only exists while the stream is still inside
+    // the element; complete documents are never touched (streaming === strict)
+    const dropPartialTag = ctx.options.streaming && scan.unclosed;
+    const summary = cleanDetailsFragment(
+        scan.summary ?? '',
+        dropPartialTag && scan.parts.length === 0
+    );
+    const fragmentAt = (part: DetailsPart, index: number): string =>
+        part.kind === 'fragment'
+            ? cleanDetailsFragment(part.markdown, dropPartialTag && index === scan.parts.length - 1)
+            : '';
+
+    const inner: WalkContext = { ...ctx, quoteDepth: ctx.quoteDepth + 1 };
+    const renderBody = (): void => {
+        if (summary !== '') {
+            wrapEntity(ctx, { type: 'bold' }, () => renderRawFragment(summary, inner, '\n'));
+            // Clients collapse expandable quotes to their first ~3 visible
+            // lines — pad below the summary so the content starts under the
+            // fold and stays hidden until expanded (lazy gap: no padding
+            // when nothing follows). Pointless when flattened into an
+            // enclosing quote, which cannot collapse.
+            ctx.emitter.pushGap(ctx.quoteDepth > 0 ? '\n' : '\n\n\n');
+        }
+        scan.parts.forEach((part, index) => {
+            if (part.kind === 'block') {
+                walkBlock(part.node, inner);
+            } else {
+                const markdown = fragmentAt(part, index);
+                // A slice may clean away entirely (e.g. a lone <br> line):
+                // it must not leave a block gap behind
+                if (markdown === '') return;
+                renderRawFragment(markdown, inner, '\n\n');
+            }
+            ctx.emitter.pushGap('\n\n');
+        });
+    };
+
+    if (ctx.quoteDepth > 0) {
+        // Telegram quotes cannot nest: flatten into the enclosing quote
+        renderBody();
+        return;
+    }
+    wrapEntity(ctx, { type: 'expandable_blockquote' }, renderBody);
+};
+
 export const walkBlocks = (nodes: RootContent[], ctx: WalkContext, gap: BlockGap): void => {
-    for (const node of nodes) {
-        walkBlock(node, ctx);
+    let index = 0;
+    while (index < nodes.length) {
+        const details = scanDetails(nodes, index);
+        if (details) {
+            renderDetails(details, ctx);
+            index = details.nextIndex;
+            if (details.trailing.trim() !== '') {
+                ctx.emitter.pushGap(gap);
+                renderRawFragment(details.trailing, ctx, gap);
+            }
+        } else {
+            const node = nodes[index];
+            if (node !== undefined) walkBlock(node, ctx);
+            index += 1;
+        }
         ctx.emitter.pushGap(gap);
     }
 };

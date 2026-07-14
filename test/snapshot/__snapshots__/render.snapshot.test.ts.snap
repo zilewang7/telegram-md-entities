@@ -276,6 +276,70 @@ exports[`renderMarkdown corpus snapshots > cjk-emoji 1`] = `
 }
 `;
 
+exports[`renderMarkdown corpus snapshots > dialect-details 1`] = `
+{
+  "entities": [
+    {
+      "length": 57,
+      "offset": 17,
+      "type": "expandable_blockquote",
+    },
+    {
+      "length": 15,
+      "offset": 17,
+      "type": "bold",
+    },
+    {
+      "length": 37,
+      "offset": 93,
+      "type": "expandable_blockquote",
+    },
+    {
+      "length": 2,
+      "offset": 107,
+      "type": "bold",
+    },
+    {
+      "length": 2,
+      "offset": 112,
+      "type": "code",
+    },
+    {
+      "length": 14,
+      "offset": 139,
+      "type": "expandable_blockquote",
+    },
+    {
+      "length": 3,
+      "offset": 139,
+      "type": "bold",
+    },
+  ],
+  "text": "带 summary 的折叠块:
+
+👉 点击展开隐藏的秘密 🤫
+
+
+其实我们今天又没有练习,光顾着吃点心了!小佐和老师要生气了快跑!🏃‍♀️💨
+
+无 summary 的折叠块:
+
+这一段没有标题,但内容里有 加粗 和 代码。
+
+• 列表也可以
+• 第二项
+
+单行写法:
+
+一行流
+
+
+内容紧跟在后面。
+
+以上,请老师检查~",
+}
+`;
+
 exports[`renderMarkdown corpus snapshots > dialect-spoiler 1`] = `
 {
   "entities": [

@@ -11,12 +11,7 @@ import { splitFormattingAroundOpaque } from './split-around-opaque';
 import { parseMarkdown } from './parse';
 import { walkBlocks, type WalkOptions } from './walker';
 
-interface ResolvedRenderOptions extends WalkOptions {
-    streaming: boolean;
-    spoiler: boolean;
-}
-
-const resolveOptions = (options?: RenderOptions): ResolvedRenderOptions => ({
+const resolveOptions = (options?: RenderOptions): WalkOptions => ({
     streaming: options?.streaming ?? false,
     table: options?.table ?? 'auto',
     heading: options?.heading ?? 'bold',

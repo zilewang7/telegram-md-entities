@@ -27,8 +27,8 @@ export interface EntityHandle {
 export interface Emitter {
     /** Append visible text (flushes any pending block gap first) */
     pushText: (value: string) => void;
-    /** Request a separator before the NEXT visible content ('\n\n' wins over '\n') */
-    pushGap: (gap: '\n' | '\n\n') => void;
+    /** Request a separator before the NEXT visible content (longest pending gap wins) */
+    pushGap: (gap: '\n' | '\n\n' | '\n\n\n') => void;
     /** Start an entity at the current cursor (flushes pending gap first) */
     openEntity: (spec: EntitySpec) => EntityHandle;
     /** End an entity; zero-length entities are dropped */
@@ -64,7 +64,7 @@ export const createEmitter = (): Emitter => {
             text += value;
         },
 
-        pushGap: (gap: '\n' | '\n\n'): void => {
+        pushGap: (gap: '\n' | '\n\n' | '\n\n\n'): void => {
             // No leading gap before the first content
             if (text === '') return;
             if (gap.length > pendingGap.length) {
