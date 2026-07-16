@@ -106,7 +106,10 @@ const resolveAllSpoiler: Resolver = (events, context) => {
     return events;
 };
 
-const tokenizeSpoiler: Tokenizer = function (this: TokenizeContext, effects, ok, nok) {
+export type SpoilerMode = 'loose' | 'strict';
+
+const createTokenizeSpoiler = (mode: SpoilerMode): Tokenizer =>
+    function (this: TokenizeContext, effects, ok, nok) {
     const previous = this.previous;
     const events = this.events;
     let size = 0;
@@ -125,9 +128,16 @@ const tokenizeSpoiler: Tokenizer = function (this: TokenizeContext, effects, ok,
         if (size < 2) return nok(code);
 
         const token = effects.exit('spoilerSequenceTemporary');
-        const after = classifyCharacter(code);
-        token._open = !after || (after === 2 && Boolean(before));
-        token._close = !before || (before === 2 && Boolean(after));
+        if (mode === 'loose') {
+            // Telegram-style pairing: any '||' can open or close, whitespace
+            // around the content is allowed ('|| text ||')
+            token._open = true;
+            token._close = true;
+        } else {
+            const after = classifyCharacter(code);
+            token._open = !after || (after === 2 && Boolean(before));
+            token._close = !before || (before === 2 && Boolean(after));
+        }
         return ok(code);
     };
 
@@ -147,11 +157,11 @@ const tokenizeSpoiler: Tokenizer = function (this: TokenizeContext, effects, ok,
     return start;
 };
 
-export const spoilerSyntax = (): Extension => ({
+export const spoilerSyntax = (mode: SpoilerMode = 'loose'): Extension => ({
     text: {
         [VERTICAL_BAR]: {
             name: 'spoiler',
-            tokenize: tokenizeSpoiler,
+            tokenize: createTokenizeSpoiler(mode),
             resolveAll: resolveAllSpoiler,
         },
     },

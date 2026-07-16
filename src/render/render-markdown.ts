@@ -17,6 +17,7 @@ const resolveOptions = (options?: RenderOptions): WalkOptions => ({
     heading: options?.heading ?? 'bold',
     hrText: options?.hrText ?? DEFAULT_HR_TEXT,
     spoiler: options?.spoiler ?? true,
+    spoilerMode: options?.spoilerMode ?? 'loose',
     underline: options?.underline ?? true,
     linkifyBareUrls: options?.linkifyBareUrls ?? false,
 });
@@ -30,10 +31,15 @@ export const renderMarkdown = (
     // Streaming: repair the unclosed tail so in-progress constructs render
     // as their intended formatting; a complete document passes through
     // untouched, so streaming output converges with the strict render
-    const repair = resolved.streaming ? repairTail(markdown) : null;
+    const repair = resolved.streaming
+        ? repairTail(markdown, { spoilerMode: resolved.spoilerMode })
+        : null;
     const source = repair ? repair.repaired : markdown;
 
-    const root = parseMarkdown(source, { spoiler: resolved.spoiler });
+    const root = parseMarkdown(source, {
+        spoiler: resolved.spoiler,
+        spoilerMode: resolved.spoilerMode,
+    });
     const emitter = createEmitter();
     walkBlocks(root.children, {
         emitter,

@@ -14,12 +14,19 @@ export interface TailRepair {
     appendix: string;
 }
 
+export interface RepairOptions {
+    spoilerMode: 'loose' | 'strict';
+}
+
 const closerFor = (entry: OpenInline): string =>
     entry.marker === '~~' || entry.marker === '||'
         ? entry.marker
         : entry.marker.repeat(entry.size);
 
-export const repairTail = (buffer: string): TailRepair => {
+export const repairTail = (
+    buffer: string,
+    options: RepairOptions = { spoilerMode: 'loose' }
+): TailRepair => {
     const block = scanBlockState(buffer);
 
     if (block.openFence) {
@@ -29,7 +36,11 @@ export const repairTail = (buffer: string): TailRepair => {
         return { repaired: buffer + closer, appendix: '' };
     }
 
-    const { splicedBuffer, openStack } = scanInlineTail(buffer, block.leafBlockStart);
+    const { splicedBuffer, openStack } = scanInlineTail(
+        buffer,
+        block.leafBlockStart,
+        options.spoilerMode
+    );
     const appendix = [...openStack].reverse().map(closerFor).join('');
     return { repaired: splicedBuffer + appendix, appendix };
 };

@@ -70,6 +70,15 @@ export interface RenderOptions {
     /** Enable the ||spoiler|| dialect (default true) */
     spoiler?: boolean;
     /**
+     * Spoiler delimiter matching (default 'loose'):
+     * - 'loose': any '||' pair toggles a spoiler, whitespace-padded content
+     *   allowed ('|| text ||') — matches Telegram's own MarkdownV2 behavior
+     *   and how LLMs naturally write spoilers
+     * - 'strict': CommonMark-style flanking rules (like ~~), '|| text ||'
+     *   stays literal
+     */
+    spoilerMode?: 'loose' | 'strict';
+    /**
      * Emit text_link entities for bare URLs (default false — Telegram
      * clients auto-link plain URLs anyway)
      */

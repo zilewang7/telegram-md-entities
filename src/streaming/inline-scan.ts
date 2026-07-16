@@ -81,7 +81,11 @@ interface LinkCandidate {
     urlStart: number;
 }
 
-export const scanInlineTail = (buffer: string, regionStart: number): InlineTailScan => {
+export const scanInlineTail = (
+    buffer: string,
+    regionStart: number,
+    spoilerMode: 'loose' | 'strict' = 'loose'
+): InlineTailScan => {
     let text = buffer;
     const stack: OpenInline[] = [];
     const links: LinkCandidate[] = [];
@@ -153,7 +157,11 @@ export const scanInlineTail = (buffer: string, regionStart: number): InlineTailS
                 const marker: '~~' | '||' = char === '~' ? '~~' : '||';
                 const before = text[i - 1] ?? '';
                 const after = text[i + size] ?? '';
-                const { canOpen, canClose } = classifyToggle(before, after);
+                const flanking =
+                    marker === '||' && spoilerMode === 'loose'
+                        ? { canOpen: true, canClose: true }
+                        : classifyToggle(before, after);
+                const { canOpen, canClose } = flanking;
                 const openIndex = stack.findIndex((entry) => entry.marker === marker);
                 if (canClose && openIndex >= 0) {
                     stack.splice(openIndex, stack.length - openIndex);

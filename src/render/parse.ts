@@ -12,11 +12,13 @@ import { cjkFriendlyExtension } from 'micromark-extension-cjk-friendly';
 import { gfmStrikethroughCjkFriendly } from 'micromark-extension-cjk-friendly-gfm-strikethrough';
 import { gfm } from 'micromark-extension-gfm';
 import { spoilerFromMarkdown } from './spoiler/mdast-spoiler';
-import { spoilerSyntax } from './spoiler/micromark-spoiler';
+import { spoilerSyntax, type SpoilerMode } from './spoiler/micromark-spoiler';
 
 export interface ParseOptions {
     /** Enable the ||spoiler|| dialect */
     spoiler: boolean;
+    /** Spoiler delimiter matching ('loose' = Telegram-style pairing) */
+    spoilerMode: SpoilerMode;
 }
 
 export const parseMarkdown = (markdown: string, options: ParseOptions): Root => {
@@ -28,7 +30,7 @@ export const parseMarkdown = (markdown: string, options: ParseOptions): Root => 
             gfm(),
             cjkFriendlyExtension(),
             gfmStrikethroughCjkFriendly(),
-            ...(options.spoiler ? [spoilerSyntax()] : []),
+            ...(options.spoiler ? [spoilerSyntax(options.spoilerMode)] : []),
         ],
         mdastExtensions: [
             gfmFromMarkdown(),

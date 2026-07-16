@@ -35,6 +35,7 @@ export interface WalkOptions {
     hrText: string;
     underline: boolean;
     spoiler: boolean;
+    spoilerMode: 'loose' | 'strict';
     linkifyBareUrls: boolean;
 }
 
@@ -339,7 +340,7 @@ const scanDetails = (nodes: RootContent[], index: number): DetailsScan | null =>
 /** Parse a raw slice as standalone markdown and emit it in place */
 const renderRawFragment = (markdown: string, ctx: WalkContext, gap: BlockGap): void => {
     if (markdown === '') return;
-    const root = parseMarkdown(markdown, { spoiler: ctx.options.spoiler });
+    const root = parseMarkdown(markdown, { spoiler: ctx.options.spoiler, spoilerMode: ctx.options.spoilerMode });
     // Positions in the re-parsed tree refer to the fragment string
     walkBlocks(root.children, { ...ctx, source: markdown }, gap);
 };

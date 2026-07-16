@@ -53,7 +53,7 @@ For token-streaming UIs: unclosed constructs render as their intended formatting
 
 ### Markdown coverage
 
-GFM (tables, strikethrough, task lists, autolinks) + `||spoiler||` and `__underline__` dialects (Telegram MarkdownV2 semantics: `__` means underline, bold is `**`; `_italic_` unaffected — opt out with `underline: false`). Headings → bold; `---` → text divider; nested quotes flattened (Telegram quotes can't nest); bare URLs left for client auto-linking.
+GFM (tables, strikethrough, task lists, autolinks) + `||spoiler||` (loose Telegram-style pairing by default, `|| text ||` works; `spoilerMode: 'strict'` for CommonMark flanking) and `__underline__` dialects (Telegram MarkdownV2 semantics: `__` means underline, bold is `**`; `_italic_` unaffected — opt out with `underline: false`). Headings → bold; `---` → text divider; nested quotes flattened (Telegram quotes can't nest); bare URLs left for client auto-linking.
 
 **`<details>`/`<summary>`** HTML blocks (the collapsible-content pattern LLMs love) become **expandable blockquotes** — Telegram's native equivalent. The summary renders as a bold header line, padded with blank lines so the content sits below the client's ~3-visible-line collapse window: the quote actually folds and the content stays hidden until tapped (clients never collapse short quotes, and even collapsed ones show their first lines — without padding a short "secret" would be fully visible). Works with or without `<summary>`, across blank lines or on a single line; `<br>` inside becomes a newline; markdown inside renders normally; nested/quoted occurrences flatten (Telegram quotes can't nest). In streaming mode half-typed tags stay invisible and an in-progress summary grows live inside the quote.
 
