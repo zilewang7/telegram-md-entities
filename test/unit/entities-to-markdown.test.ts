@@ -143,6 +143,24 @@ describe('entitiesToMarkdown', () => {
         expect(markdown).toContain('https://example.com');
     });
 
+    it('bare URLs with markdown metacharacters stay byte-exact (no escaping)', () => {
+        const message: ReadableMessage = {
+            text: '看 https://en.wikipedia.org/wiki/Foo_bar(x) 和 #中文_tag 加粗',
+            entities: [
+                { type: 'url', offset: 2, length: 40 },
+                { type: 'hashtag', offset: 45, length: 7 },
+                { type: 'bold', offset: 53, length: 2 },
+            ],
+        };
+        const markdown = entitiesToMarkdown(message);
+        expect(markdown).toContain('https://en.wikipedia.org/wiki/Foo_bar(x)');
+        expect(markdown).toContain('#中文_tag');
+        expect(markdown).toContain('**加粗**');
+        const rendered = renderMarkdown(markdown);
+        expect(rendered.text).toContain('https://en.wikipedia.org/wiki/Foo_bar(x)');
+        expect(rendered.text).toContain('#中文_tag');
+    });
+
     it('whitespace-padded entity edges trim to visible characters', () => {
         const markdown = expectRoundTrip({
             text: 'a  b  c',
