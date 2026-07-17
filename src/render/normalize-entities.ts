@@ -31,6 +31,23 @@ const contains = (outer: MessageEntity, inner: MessageEntity): boolean =>
     outer.offset <= inner.offset &&
     outer.offset + outer.length >= inner.offset + inner.length;
 
+/** Would a merged span [start, end) partially overlap any other entity?
+ *  (Merging two children that live under different parents would otherwise
+ *  manufacture an overlap-not-nested entity out of two valid ones.) */
+const mergeStaysNested = (
+    all: MessageEntity[],
+    start: number,
+    end: number
+): boolean =>
+    all.every((other) => {
+        const otherStart = other.offset;
+        const otherEnd = other.offset + other.length;
+        const partialOverlap =
+            (otherStart < start && start < otherEnd && otherEnd < end) ||
+            (start < otherStart && otherStart < end && end < otherEnd);
+        return !partialOverlap;
+    });
+
 export const normalizeEntities = (entities: MessageEntity[]): MessageEntity[] => {
     const sorted = entities
         .filter((entity) => entity.length > 0)
@@ -48,7 +65,8 @@ export const normalizeEntities = (entities: MessageEntity[]): MessageEntity[] =>
         if (
             previous &&
             sameAttrs(previous, entity) &&
-            previous.offset + previous.length === entity.offset
+            previous.offset + previous.length === entity.offset &&
+            mergeStaysNested(sorted, previous.offset, entity.offset + entity.length)
         ) {
             previous.length = entity.offset + entity.length - previous.offset;
             continue;

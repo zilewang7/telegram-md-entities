@@ -4,7 +4,6 @@
  * server normalization, making this file a living record of Bot API
  * behavior.
  */
-import { normalizeEntities } from '../../../src/render/normalize-entities';
 import type { EntityType, MessageEntity, RenderedMessage } from '../../../src/types';
 import type { TgMessageLite } from './client';
 
@@ -33,46 +32,10 @@ export const fromResponse = (message: TgMessageLite): RenderedMessage => {
     return { text: message.text ?? '', entities };
 };
 
-export interface StyleSegment {
-    text: string;
-    styles: string[];
-}
-
-/**
- * Display-equivalent canonical form: per-character style sets, RLE-compressed
- * into segments. The server freely splits/merges entities in its internal
- * representation (e.g. italic containing bold becomes two italics); what is
- * invariant is which styles cover each character — so THAT is what we
- * compare. Also robust to trailing-slash url normalization.
- */
-export const styleSegments = (message: RenderedMessage): StyleSegment[] => {
-    const { text, entities } = message;
-    const styleAt: string[][] = Array.from({ length: text.length }, () => []);
-
-    for (const entity of normalizeEntities(entities)) {
-        const atom =
-            entity.type +
-            (entity.url !== undefined ? `:${entity.url.replace(/\/$/, '')}` : '') +
-            (entity.language !== undefined ? `:${entity.language}` : '');
-        const end = Math.min(entity.offset + entity.length, text.length);
-        for (let i = Math.max(0, entity.offset); i < end; i++) {
-            styleAt[i]?.push(atom);
-        }
-    }
-
-    const segments: StyleSegment[] = [];
-    for (let i = 0; i < text.length; i++) {
-        const styles = [...(styleAt[i] ?? [])].sort();
-        const key = styles.join('|');
-        const previous = segments[segments.length - 1];
-        if (previous && previous.styles.join('|') === key) {
-            previous.text += text[i] ?? '';
-        } else {
-            segments.push({ text: text[i] ?? '', styles });
-        }
-    }
-    return segments;
-};
+export { styleSegments } from '../../../src/rich/style-segments';
+export type { StyleSegment } from '../../../src/rich/style-segments';
+import { styleSegments } from '../../../src/rich/style-segments';
+import type { StyleSegment } from '../../../src/rich/style-segments';
 
 export const normalizeForCompare = (message: RenderedMessage): StyleSegment[] =>
     styleSegments(message);

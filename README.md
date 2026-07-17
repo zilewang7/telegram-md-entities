@@ -41,6 +41,9 @@ validateMessage(message)             // → offline Bot API rule check (offsets,
 toPreviewHtml(message, options?)     // → Telegram-like HTML for offline visual review
 wrapInBlockquote(message, expandable?) // e.g. LLM "thinking" sections
 concatMessages(...parts)             // compose with automatic entity re-offsetting
+entitiesToMarkdown(message)          // REVERSE: {text, entities} -> markdown (this dialect)
+richBlocksToMarkdown(blocks, opts?)  // REVERSE: Bot API 10.1+ rich message blocks -> markdown
+styleSegments(message)               // per-char style runs: display-equivalence comparator
 ```
 
 ### Streaming mode
@@ -60,6 +63,14 @@ GFM (tables, strikethrough, task lists, autolinks) + `||spoiler||` (loose Telegr
 **Tables** (`table: 'auto'`, the default): narrow-only tables become a monospace-aligned `pre` grid — exact on every client, since mono fonts are actually monospace for ASCII. Tables containing East Asian Wide characters become a nested bullet list instead — `• **first cell**` per row with a `• header: value` sub-item per remaining cell. This is deliberate: inside Telegram `pre` blocks, CJK ideographs, `U+3000` and fullwidth punctuation resolve to *different* fallback fonts with *different* advance widths on each client (measured live on macOS/Android), so no padding scheme can align a mixed grid everywhere — and padded grids overflow phone bubbles and wrap anyway. Force a mode with `table: 'pre' | 'records' | 'plain'`.
 
 **CJK-friendly emphasis** via [micromark-extension-cjk-friendly](https://www.npmjs.com/package/micromark-extension-cjk-friendly): `的**“重点”**后` renders bold — vanilla CommonMark flanking rules silently break emphasis next to fullwidth punctuation, which hits Chinese/Japanese/Korean LLM output constantly. The streaming tail scanner applies the same relaxed rules, so in-progress CJK bold renders correctly mid-stream too.
+
+### Reverse pipeline (entities → markdown)
+
+`entitiesToMarkdown({ text, entities })` converts a received Telegram message back to markdown in this package's own input dialect — overlapping / server-split entities are flattened into per-character style runs and rebuilt as strictly nested markers with close-and-reopen at boundaries. Server auto-detections (`url`, `mention`, `hashtag`, `custom_emoji`, …) pass through as plain text; `text_mention` becomes a `tg://user?id=` link. The acceptance rule is round-trip display equivalence: `renderMarkdown(entitiesToMarkdown(msg))` covers each character with the same styles as the original. Known lossy edges: 3+ consecutive newlines collapse, a paragraph directly after a quote gains a blank line, code is opaque (styles on code characters split around it), and one-way sugar (headings, tables, lists) is never inferred back.
+
+`richBlocksToMarkdown(blocks)` converts Bot API 10.1+ rich messages (`message.rich_message.blocks`, the Premium rich-text editor format) to markdown: headings → `#`, tables → GFM pipes, `details` → `<details>`, pre → fenced code, LaTeX blocks → ```latex fences, embedded media → text placeholders (customizable via `mediaPlaceholder`). Types are structural — pass grammy's `RichBlock[]` straight in.
+
+Both target this dialect on purpose: the forward parser is the referee, so reversibility is mechanically testable.
 
 ## Encoded server behavior
 
