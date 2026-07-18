@@ -1,6 +1,6 @@
 {
     "name": "telegram-md-entities",
-    "version": "0.3.1",
+    "version": "0.4.0",
     "description": "Lenient markdown → Telegram Bot API { text, entities } renderer built for LLM output: no parse_mode, no escaping, no parse errors; entity-aware message splitting, streaming-friendly partial rendering, offline preview.",
     "keywords": [
         "telegram",
