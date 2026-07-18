@@ -47,6 +47,7 @@ export const renderMarkdown = (
         source,
         quoteDepth: 0,
         listDepth: 0,
+        htmlStack: [],
     }, '\n\n');
 
     const { text, entities } = emitter.finish();

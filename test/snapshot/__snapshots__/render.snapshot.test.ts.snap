@@ -478,12 +478,86 @@ exports[`renderMarkdown corpus snapshots > edge-hr 1`] = `
 
 exports[`renderMarkdown corpus snapshots > edge-html 1`] = `
 {
-  "entities": [],
-  "text": "行内 <b>HTML 标签</b> 应按原文保留为文本。
+  "entities": [
+    {
+      "length": 7,
+      "offset": 3,
+      "type": "bold",
+    },
+    {
+      "length": 2,
+      "offset": 17,
+      "type": "italic",
+    },
+    {
+      "length": 4,
+      "offset": 22,
+      "type": "code",
+    },
+    {
+      "length": 4,
+      "offset": 107,
+      "type": "italic",
+    },
+    {
+      "length": 4,
+      "offset": 107,
+      "type": "bold",
+    },
+    {
+      "length": 4,
+      "offset": 116,
+      "type": "bold",
+    },
+    {
+      "length": 2,
+      "offset": 118,
+      "type": "italic",
+    },
+    {
+      "length": 2,
+      "offset": 120,
+      "type": "italic",
+    },
+    {
+      "length": 5,
+      "offset": 132,
+      "type": "bold",
+    },
+    {
+      "length": 4,
+      "offset": 139,
+      "type": "text_link",
+      "url": "https://example.com",
+    },
+    {
+      "length": 3,
+      "offset": 146,
+      "type": "strikethrough",
+    },
+    {
+      "language": "python",
+      "length": 11,
+      "offset": 152,
+      "type": "pre",
+    },
+  ],
+  "text": "行内 HTML 标签 渲染为实体，斜体 与 code 也是。
 
-<div>块级 HTML</div>
+未知标签 <notreal>按原文保留</notreal> 为文本。
 
-含 <br/> 的行。",
+<div>未知块级 HTML 原样保留</div>
+
+含 
+ 的行。
+
+嵌套 加粗斜体 与错位 b bi i 恢复。
+
+未闭合 只影响本块
+
+链接标签 与 删除线。
+
+print("hi")",
 }
 `;
 

@@ -23,6 +23,8 @@ import {
     scanForDetailsClose,
     stripDetailsOpenTag,
 } from './details';
+import { flushHtmlStack, renderHtmlValue, type HtmlTagFrame } from './html-tags';
+import { resolveLinkTarget } from './link-target';
 import { parseMarkdown } from './parse';
 import { alignedTableText, plainTableText, tableToCells } from './table';
 import { tableHasWideContent, tableToRecordLines } from './table-records';
@@ -48,6 +50,8 @@ export interface WalkContext {
     quoteDepth: number;
     /** nesting depth for list indentation */
     listDepth: number;
+    /** open HTML formatting tags (<b>…) awaiting their close tag */
+    htmlStack: HtmlTagFrame[];
 }
 
 type BlockGap = '\n' | '\n\n';
@@ -56,18 +60,6 @@ const wrapEntity = (ctx: WalkContext, spec: EntitySpec, body: () => void): void 
     const handle = ctx.emitter.openEntity(spec);
     body();
     ctx.emitter.closeEntity(handle);
-};
-
-/**
- * text_link url policy: the server silently DROPS entities whose url is not
- * http(s)/tg (observed live: mailto links vanish from sent messages) — only
- * emit entities for schemes Telegram keeps; www. gets https:// prefixed;
- * everything else degrades to plain text.
- */
-const resolveLinkTarget = (url: string): string | null => {
-    if (/^(https?|tg):/i.test(url)) return url;
-    if (/^www\./i.test(url)) return `https://${url}`;
-    return null;
 };
 
 const renderLink = (node: Link, ctx: WalkContext): void => {
@@ -224,7 +216,7 @@ const walkInline = (node: PhrasingContent, ctx: WalkContext): void => {
         .with({ type: 'link' }, (n) => renderLink(n, ctx))
         .with({ type: 'image' }, (n) => renderImage(n, ctx))
         .with({ type: 'break' }, () => ctx.emitter.pushText('\n'))
-        .with({ type: 'html' }, (n) => ctx.emitter.pushText(n.value))
+        .with({ type: 'html' }, (n) => renderHtmlValue(n.value, ctx.emitter, ctx.htmlStack))
         .with({ type: 'footnoteReference' }, (n) => ctx.emitter.pushText(`[${n.identifier}]`))
         .with({ type: 'linkReference' }, (n) => walkInlineChildren(n.children, ctx))
         .with({ type: 'imageReference' }, (n) => ctx.emitter.pushText(n.alt ?? ''))
@@ -232,6 +224,13 @@ const walkInline = (node: PhrasingContent, ctx: WalkContext): void => {
 };
 
 const walkBlock = (node: RootContent, ctx: WalkContext): void => {
+    renderBlockNode(node, ctx);
+    // HTML formatting cannot span blocks: whatever is still open closes
+    // here, so an unclosed <b> styles at most the rest of its own block
+    flushHtmlStack(ctx.emitter, ctx.htmlStack);
+};
+
+const renderBlockNode = (node: RootContent, ctx: WalkContext): void => {
     match(node)
         .with({ type: 'paragraph' }, (n) => walkInlineChildren(n.children, ctx))
         .with({ type: 'heading' }, (n) => renderHeading(n, ctx))
@@ -246,7 +245,7 @@ const walkBlock = (node: RootContent, ctx: WalkContext): void => {
         .with({ type: 'list' }, (n) => renderList(n, ctx))
         .with({ type: 'table' }, (n) => renderTable(n, ctx))
         .with({ type: 'thematicBreak' }, () => ctx.emitter.pushText(ctx.options.hrText))
-        .with({ type: 'html' }, (n) => ctx.emitter.pushText(n.value))
+        .with({ type: 'html' }, (n) => renderHtmlValue(n.value, ctx.emitter, ctx.htmlStack))
         .with({ type: 'footnoteDefinition' }, (n) => {
             ctx.emitter.pushText(`[${n.identifier}]: `);
             walkBlocks(n.children, ctx, '\n');

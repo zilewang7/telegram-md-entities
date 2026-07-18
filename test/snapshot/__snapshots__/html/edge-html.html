@@ -1,5 +1,15 @@
-<div class="tg-message">行内 &lt;b&gt;HTML 标签&lt;/b&gt; 应按原文保留为文本。
+<div class="tg-message">行内 <strong>HTML 标签</strong> 渲染为实体，<em>斜体</em> 与 <code>code</code> 也是。
 
-&lt;div&gt;块级 HTML&lt;/div&gt;
+未知标签 &lt;notreal&gt;按原文保留&lt;/notreal&gt; 为文本。
 
-含 &lt;br/&gt; 的行。</div>
+&lt;div&gt;未知块级 HTML 原样保留&lt;/div&gt;
+
+含 
+ 的行。
+
+嵌套 <em><strong>加粗斜体</strong></em> 与错位 <strong>b <em>bi</em></strong><em> i</em> 恢复。
+
+未闭合 <strong>只影响本块</strong>
+
+<a href="https://example.com" target="_blank">链接标签</a> 与 <s>删除线</s>。
+<pre><div class="tg-pre-header">python</div><code class="language-python">print(&quot;hi&quot;)</code></pre></div>
