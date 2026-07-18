@@ -17,10 +17,10 @@ export interface BlockState {
     leafBlockStart: number;
 }
 
-const QUOTE_PREFIX = /^(?:[ ]{0,3}>[ ]?)+/;
-const FENCE_LINE = /^[ ]{0,3}(`{3,}|~{3,})(.*)$/;
+export const QUOTE_PREFIX = /^(?:[ ]{0,3}>[ ]?)+/;
+export const FENCE_LINE = /^[ ]{0,3}(`{3,}|~{3,})(.*)$/;
 /** Lines that start a fresh leaf block — inline constructs never span them */
-const LEAF_RESET = /^(?:#{1,6}\s|[-*+]\s|\d{1,9}[.)]\s|\||[ ]{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$)/;
+export const LEAF_RESET = /^(?:#{1,6}\s|[-*+]\s|\d{1,9}[.)]\s|\||[ ]{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$)/;
 
 export const scanBlockState = (buffer: string): BlockState => {
     let openFence: OpenFence | null = null;

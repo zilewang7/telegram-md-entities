@@ -93,6 +93,11 @@ const classifyOpenTag = (name: string, attrs: string): TagMeaning =>
                 ? { kind: 'entity', spec: { type: 'spoiler' } }
                 : { kind: 'literal' }
         )
+        // details/summary normally never reach here (the walker turns whole
+        // elements into expandable blockquotes); a stray tag — e.g. an element
+        // cut in half by raw-level message splitting — drops silently instead
+        // of leaking literal markup
+        .with('details', 'summary', () => ({ kind: 'silent' }))
         .with('a', () => {
             const matched = HREF_ATTR.exec(attrs);
             const href = matched?.[1] ?? matched?.[2] ?? matched?.[3] ?? '';
@@ -109,6 +114,7 @@ const classifyOpenTag = (name: string, attrs: string): TagMeaning =>
 const KNOWN_CLOSE_NAMES = new Set([
     'b', 'strong', 'i', 'em', 'u', 'ins', 's', 'strike', 'del',
     'code', 'pre', 'a', 'tg-spoiler', 'ul', 'ol', 'li',
+    'details', 'summary',
 ]);
 
 const frameIndexFromTop = (stack: HtmlTagFrame[], name: string): number => {

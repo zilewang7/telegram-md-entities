@@ -12,6 +12,8 @@ export { DEFAULT_MAX_LENGTH, DEFAULT_MAX_ENTITIES, DEFAULT_HR_TEXT } from './con
 export { renderMarkdown } from './render/render-markdown';
 export { normalizeEntities } from './render/normalize-entities';
 export { splitMessage } from './split/split-message';
+export { splitRawMarkdown, splitRawMarkdownAtNewline } from './split/split-raw-markdown';
+export type { RawSplitResult, SplitRawOptions } from './split/split-raw-markdown';
 export { validateMessage } from './validate/validate-message';
 export { toPreviewHtml } from './preview/to-preview-html';
 export { TELEGRAM_PREVIEW_CSS } from './preview/styles';
