@@ -164,6 +164,49 @@ describe('HTML formatting tags', () => {
         expect(entities.some((e) => e.type === 'bold')).toBe(true);
     });
 
+    it('renders <ul>/<li> as bullet lines, markup whitespace dropped', () => {
+        const { text, entities } = entitiesOf(
+            '<ul>\n  <li><b>加粗项</b>：说明文字</li>\n  <li>第二项</li>\n</ul>'
+        );
+        expect(text).toBe('• 加粗项：说明文字\n• 第二项');
+        expect(entities).toEqual([{ type: 'bold', offset: 2, length: 3 }]);
+    });
+
+    it('renders <ol>/<li> as numbered lines', () => {
+        expect(entitiesOf('<ol>\n<li>一</li>\n<li>二</li>\n</ol>').text).toBe('1. 一\n2. 二');
+    });
+
+    it('indents nested HTML lists', () => {
+        expect(entitiesOf('<ul><li>甲<ul><li>嵌套子项</li></ul></li><li>乙</li></ul>').text).toBe(
+            '• 甲\n    • 嵌套子项\n• 乙'
+        );
+    });
+
+    it('keeps content for a bare <li> and an unclosed <ul>', () => {
+        expect(entitiesOf('裸 <li>项目</li> 标签').text).toBe('裸 \n• 项目 标签');
+        expect(entitiesOf('前文\n\n<ul>\n<li>未闭合列表').text).toBe('前文\n\n• 未闭合列表');
+    });
+
+    it('renders lists inside a <details> element', () => {
+        const { text, entities } = entitiesOf(
+            '<details>\n<summary>汇总</summary>\n说明。\n<ul>\n  <li><b>品牌</b>：八喜。</li>\n</ul>\n</details>'
+        );
+        expect(text).toContain('• 品牌：八喜。');
+        expect(entities.some((e) => e.type === 'expandable_blockquote')).toBe(true);
+    });
+
+    it('strips tags in table cells: <br> becomes a space, formatting drops', () => {
+        // CJK content forces record mode
+        const records = entitiesOf('| A<br>B | C |\n| --- | --- |\n| <b>粗</b>1<br>2 | 中文内容 |');
+        expect(records.text).not.toContain('<br>');
+        expect(records.text).not.toContain('<b>');
+        expect(records.text).toContain('粗1 2');
+        // ASCII-only content renders as an aligned pre grid
+        const grid = entitiesOf('| A | B |\n| --- | --- |\n| a1<br>a2 | b |');
+        expect(grid.text).toContain('a1 a2');
+        expect(grid.text).not.toContain('<br>');
+    });
+
     it('never throws and never loses body text on malformed soup', () => {
         const soups = [
             '<b><i><u>三层未闭合',

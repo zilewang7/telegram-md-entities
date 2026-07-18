@@ -23,6 +23,8 @@ export interface HtmlTagFrame {
     spec: EntitySpec | null;
     /** Emitter cursor at open time (detects "no content emitted yet") */
     cursorAtOpen: number;
+    /** Set on <ul>/<ol> frames: item counter for the ordered marker */
+    list?: { ordered: boolean; count: number };
 }
 
 type HtmlToken =
@@ -69,6 +71,8 @@ const classAttrOf = (attrs: string): string => {
 type TagMeaning =
     | { kind: 'entity'; spec: EntitySpec }
     | { kind: 'silent' }
+    | { kind: 'list'; ordered: boolean }
+    | { kind: 'item' }
     | { kind: 'literal' };
 
 /** Telegram parse_mode=HTML tag set (span is spoiler-only, like Telegram's) */
@@ -81,6 +85,9 @@ const classifyOpenTag = (name: string, attrs: string): TagMeaning =>
         .with('code', () => ({ kind: 'entity', spec: { type: 'code' } }))
         .with('pre', () => ({ kind: 'entity', spec: { type: 'pre' } }))
         .with('tg-spoiler', () => ({ kind: 'entity', spec: { type: 'spoiler' } }))
+        .with('ul', () => ({ kind: 'list', ordered: false }))
+        .with('ol', () => ({ kind: 'list', ordered: true }))
+        .with('li', () => ({ kind: 'item' }))
         .with('span', () =>
             /(?:^|\s)tg-spoiler(?:\s|$)/.test(classAttrOf(attrs))
                 ? { kind: 'entity', spec: { type: 'spoiler' } }
@@ -101,7 +108,7 @@ const classifyOpenTag = (name: string, attrs: string): TagMeaning =>
 // span is resolved through the stack only (a literal <span> stays literal)
 const KNOWN_CLOSE_NAMES = new Set([
     'b', 'strong', 'i', 'em', 'u', 'ins', 's', 'strike', 'del',
-    'code', 'pre', 'a', 'tg-spoiler',
+    'code', 'pre', 'a', 'tg-spoiler', 'ul', 'ol', 'li',
 ]);
 
 const frameIndexFromTop = (stack: HtmlTagFrame[], name: string): number => {
@@ -111,6 +118,31 @@ const frameIndexFromTop = (stack: HtmlTagFrame[], name: string): number => {
     return -1;
 };
 
+const listDepthOf = (stack: HtmlTagFrame[]): number =>
+    stack.filter((frame) => frame.list !== undefined).length;
+
+const nearestList = (stack: HtmlTagFrame[]): HtmlTagFrame | undefined => {
+    for (let index = stack.length - 1; index >= 0; index -= 1) {
+        const frame = stack[index];
+        if (frame?.list) return frame;
+    }
+    return undefined;
+};
+
+/** <li>: emit a line break + indent + marker, mirroring the markdown list style */
+const openListItem = (emitter: Emitter, stack: HtmlTagFrame[]): void => {
+    const container = nearestList(stack);
+    const indent = '    '.repeat(Math.max(0, listDepthOf(stack) - 1));
+    let marker = '• ';
+    if (container?.list) {
+        container.list.count += 1;
+        if (container.list.ordered) marker = `${container.list.count}. `;
+    }
+    emitter.pushGap('\n');
+    emitter.pushText(indent + marker);
+    stack.push({ name: 'li', handle: null, spec: null, cursorAtOpen: emitter.cursor() });
+};
+
 const openFrame = (
     name: string,
     meaning: TagMeaning,
@@ -118,6 +150,20 @@ const openFrame = (
     stack: HtmlTagFrame[]
 ): void => {
     if (meaning.kind === 'literal') return;
+    if (meaning.kind === 'list') {
+        stack.push({
+            name,
+            handle: null,
+            spec: null,
+            cursorAtOpen: emitter.cursor(),
+            list: { ordered: meaning.ordered, count: 0 },
+        });
+        return;
+    }
+    if (meaning.kind === 'item') {
+        openListItem(emitter, stack);
+        return;
+    }
     let spec = meaning.kind === 'entity' ? meaning.spec : null;
     // Telegram has no nested code-in-pre: <pre><code> collapses into the
     // pre entity; a language-xxx class upgrades a still-empty pre in place
@@ -198,6 +244,9 @@ export const renderHtmlValue = (
             let text = token.value;
             const previous = tokens[index - 1];
             const next = tokens[index + 1];
+            // Markup whitespace between list tags (<ul>\n  <li>…) is layout,
+            // not content — it would land before the item marker
+            if (stack[stack.length - 1]?.list && text.trim() === '') return;
             // <pre> blocks carry the tags' own line breaks — keep the entity
             // free of an artificial blank first/last line
             if (previous?.kind === 'tag' && previous.name === 'pre' && !previous.closing) {
@@ -229,6 +278,21 @@ export const renderHtmlValue = (
         openFrame(token.name, meaning, emitter, stack);
     });
 };
+
+/**
+ * Flatten a raw html value to its visible text for contexts where entities
+ * cannot apply (table cells): known tags strip away, <br> becomes a space
+ * (cell layouts are single-line), unknown tags stay literal.
+ */
+export const strippedHtmlText = (value: string): string =>
+    tokenizeHtml(value)
+        .map((token) => {
+            if (token.kind === 'text') return token.value;
+            if (token.name === 'br') return ' ';
+            if (token.closing) return KNOWN_CLOSE_NAMES.has(token.name) ? '' : token.raw;
+            return classifyOpenTag(token.name, token.attrs).kind === 'literal' ? token.raw : '';
+        })
+        .join('');
 
 /** Leniently close whatever is still open — called at every block end */
 export const flushHtmlStack = (emitter: Emitter, stack: HtmlTagFrame[]): void => {

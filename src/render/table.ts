@@ -11,7 +11,7 @@
  */
 import type { AlignType, Table } from 'mdast';
 import { isWideChar } from './east-asian-width';
-import { plainTextOfNodes } from './plain-text';
+import { visibleTextOfNodes } from './plain-text';
 
 const IDEOGRAPHIC_SPACE = '　';
 const FULLWIDTH_DASH = '－';
@@ -56,7 +56,7 @@ const padCell = (
 };
 
 export const tableToCells = (node: Table): string[][] =>
-    node.children.map((row) => row.children.map((cell) => plainTextOfNodes(cell.children)));
+    node.children.map((row) => row.children.map((cell) => visibleTextOfNodes(cell.children)));
 
 export const alignedTableText = (node: Table): string => {
     const rows = tableToCells(node);

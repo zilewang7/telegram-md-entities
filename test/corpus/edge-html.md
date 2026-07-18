@@ -13,3 +13,12 @@
 <a href="https://example.com">链接标签</a> 与 <s>删除线</s>。
 
 <pre><code class="language-python">print("hi")</code></pre>
+
+<ul>
+  <li><b>列表项一</b>：说明</li>
+  <li>列表项二</li>
+</ul>
+
+| 表头A<br>换行 | 表头B |
+| --- | --- |
+| <b>加粗</b>1<br>2 | 中文单元格 |
