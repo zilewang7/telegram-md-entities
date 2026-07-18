@@ -281,14 +281,14 @@ export const renderHtmlValue = (
 
 /**
  * Flatten a raw html value to its visible text for contexts where entities
- * cannot apply (table cells): known tags strip away, <br> becomes a space
- * (cell layouts are single-line), unknown tags stay literal.
+ * cannot apply (table cells): known tags strip away, <br> keeps its line
+ * break (cell renderers handle the layout), unknown tags stay literal.
  */
 export const strippedHtmlText = (value: string): string =>
     tokenizeHtml(value)
         .map((token) => {
             if (token.kind === 'text') return token.value;
-            if (token.name === 'br') return ' ';
+            if (token.name === 'br') return '\n';
             if (token.closing) return KNOWN_CLOSE_NAMES.has(token.name) ? '' : token.raw;
             return classifyOpenTag(token.name, token.attrs).kind === 'literal' ? token.raw : '';
         })

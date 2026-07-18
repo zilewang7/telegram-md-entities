@@ -195,15 +195,21 @@ describe('HTML formatting tags', () => {
         expect(entities.some((e) => e.type === 'expandable_blockquote')).toBe(true);
     });
 
-    it('strips tags in table cells: <br> becomes a space, formatting drops', () => {
-        // CJK content forces record mode
-        const records = entitiesOf('| A<br>B | C |\n| --- | --- |\n| <b>粗</b>1<br>2 | 中文内容 |');
+    it('keeps <br> line breaks in table cells with layout indent, formatting drops', () => {
+        // CJK content forces record mode: continuation lines indent under
+        // their bullet (2 spaces for the key, 6 for fields)
+        const records = entitiesOf(
+            '| A<br>B | C |\n| --- | --- |\n| <b>粗</b>1<br>2 | 中文内容<br>第二行 |'
+        );
         expect(records.text).not.toContain('<br>');
         expect(records.text).not.toContain('<b>');
-        expect(records.text).toContain('粗1 2');
-        // ASCII-only content renders as an aligned pre grid
+        expect(records.text).toContain('粗1\n  2');
+        expect(records.text).toContain('中文内容\n      第二行');
+        // ASCII-only content renders as an aligned pre grid: the row expands
+        // to physical lines, columns stay padded
         const grid = entitiesOf('| A | B |\n| --- | --- |\n| a1<br>a2 | b |');
-        expect(grid.text).toContain('a1 a2');
+        expect(grid.text).toContain('a1 | b');
+        expect(grid.text).toContain('\na2 |');
         expect(grid.text).not.toContain('<br>');
     });
 

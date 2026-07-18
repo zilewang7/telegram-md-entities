@@ -144,17 +144,21 @@ const renderTableGrid = (node: Table, ctx: WalkContext): void => {
 };
 
 const renderTableRecords = (node: Table, ctx: WalkContext): void => {
+    // Cell-internal line breaks (<br>) survive; continuation lines indent
+    // under their bullet so the record structure stays readable
     tableToRecordLines(tableToCells(node)).forEach((line, index) => {
         if (index > 0) ctx.emitter.pushGap('\n');
         ctx.emitter.pushText('• ');
         if (line.key !== '') {
-            wrapEntity(ctx, { type: 'bold' }, () => ctx.emitter.pushText(line.key));
+            wrapEntity(ctx, { type: 'bold' }, () =>
+                ctx.emitter.pushText(line.key.replace(/\n/g, '\n  '))
+            );
             for (const field of line.fields) {
-                ctx.emitter.pushText(`\n    • ${field}`);
+                ctx.emitter.pushText(`\n    • ${field.replace(/\n/g, '\n      ')}`);
             }
         } else {
             // Degenerate row without a first cell: keep fields on one line
-            ctx.emitter.pushText(line.fields.join(' · '));
+            ctx.emitter.pushText(line.fields.join(' · ').replace(/\n/g, '\n  '));
         }
     });
 };

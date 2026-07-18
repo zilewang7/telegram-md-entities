@@ -47,6 +47,7 @@
         "typecheck": "tsc --noEmit",
         "test": "vitest run --exclude \"test/e2e/**\"",
         "test:e2e": "vitest run test/e2e --no-file-parallelism --testTimeout=120000",
+        "test:e2e:full": "E2E_FULL=1 vitest run test/e2e --no-file-parallelism --testTimeout=120000",
         "test:probe": "RUN_PROBE=1 vitest run test/e2e/entity-limit.probe.e2e.test.ts --no-file-parallelism --testTimeout=120000",
         "test:differential": "RUN_DIFFERENTIAL=1 vitest run test/e2e/differential.e2e.test.ts --no-file-parallelism --testTimeout=600000",
         "check:publish": "publint && attw --pack . --profile esm-only",

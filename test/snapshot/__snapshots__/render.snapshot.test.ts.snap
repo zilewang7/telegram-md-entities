@@ -547,7 +547,7 @@ exports[`renderMarkdown corpus snapshots > edge-html 1`] = `
       "type": "bold",
     },
     {
-      "length": 5,
+      "length": 7,
       "offset": 185,
       "type": "bold",
     },
@@ -572,7 +572,8 @@ print("hi")
 • 列表项一：说明
 • 列表项二
 
-• 加粗1 2
+• 加粗1
+  2
     • 表头B: 中文单元格",
 }
 `;

@@ -63,21 +63,28 @@ export const alignedTableText = (node: Table): string => {
     if (rows.length === 0) return '';
 
     const columnCount = Math.max(...rows.map((row) => row.length));
+    // Cells may hold line breaks (<br>): budgets and padding are per LINE,
+    // and a row with a multi-line cell expands to several physical lines
     const targets: CellCounts[] = Array.from({ length: columnCount }, (_, i) => {
-        const counts = rows.map((row) => countCell(row[i] ?? ''));
+        const counts = rows.flatMap((row) => (row[i] ?? '').split('\n').map(countCell));
         return {
             wide: Math.max(...counts.map((c) => c.wide)),
             narrow: Math.max(...counts.map((c) => c.narrow)),
         };
     });
 
-    const renderRow = (row: string[]): string =>
-        targets
-            .map((target, i) =>
-                padCell(row[i] ?? '', target, node.align?.[i] ?? null)
-            )
-            .join(' | ')
-            .trimEnd();
+    const renderRow = (row: string[]): string => {
+        const cellLines = targets.map((_, i) => (row[i] ?? '').split('\n'));
+        const height = Math.max(1, ...cellLines.map((lines) => lines.length));
+        return Array.from({ length: height }, (_, line) =>
+            targets
+                .map((target, i) =>
+                    padCell(cellLines[i]?.[line] ?? '', target, node.align?.[i] ?? null)
+                )
+                .join(' | ')
+                .trimEnd()
+        ).join('\n');
+    };
 
     // Separator row plays by the same counting rules: fullwidth dashes fill
     // the wide budget, ASCII dashes fill the narrow budget
@@ -94,5 +101,6 @@ export const alignedTableText = (node: Table): string => {
 
 export const plainTableText = (node: Table): string =>
     tableToCells(node)
-        .map((row) => row.join(' | '))
+        // plain mode keeps one physical line per row
+        .map((row) => row.map((cell) => cell.replace(/\n/g, ' ')).join(' | '))
         .join('\n');
