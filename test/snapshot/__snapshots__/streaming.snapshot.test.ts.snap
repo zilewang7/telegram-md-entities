@@ -44,12 +44,6 @@ exports[`streaming render snapshots (§1.5 table) > fence inside quote 1`] = `
       "offset": 0,
       "type": "blockquote",
     },
-    {
-      "language": "js",
-      "length": 12,
-      "offset": 5,
-      "type": "pre",
-    },
   ],
   "text": "引用里
 

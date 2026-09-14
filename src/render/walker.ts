@@ -5,6 +5,7 @@
  */
 import type {
     Blockquote,
+    Code,
     Heading,
     Image,
     Link,
@@ -46,7 +47,8 @@ export interface WalkContext {
     options: WalkOptions;
     /** The parsed source, for details mdast drops (e.g. emphasis delimiter) */
     source: string;
-    /** >0 when inside a blockquote (blockquotes cannot nest in Telegram) */
+    /** >0 when inside a blockquote (blockquotes cannot nest in Telegram, and
+     *  a quote cannot hold a block entity: tables and code render flat) */
     quoteDepth: number;
     /** nesting depth for list indentation */
     listDepth: number;
@@ -164,17 +166,37 @@ const renderTableRecords = (node: Table, ctx: WalkContext): void => {
 };
 
 const renderTable = (node: Table, ctx: WalkContext): void => {
+    // Inside a quote the mono grid is off the table: a quote cannot hold a
+    // block entity (clients stop rendering the quote at it), and without mono
+    // the aligned grid would look ragged anyway, so record lines win
+    const inQuote = ctx.quoteDepth > 0;
+
     match(ctx.options.table)
         .with('plain', () => ctx.emitter.pushText(plainTableText(node)))
-        .with('pre', () => renderTableGrid(node, ctx))
+        .with('pre', () =>
+            inQuote ? ctx.emitter.pushText(alignedTableText(node)) : renderTableGrid(node, ctx)
+        )
         .with('records', () => renderTableRecords(node, ctx))
         .with('auto', () => {
             // Grid alignment is only reliable when the mono font covers every
             // char; wide (CJK/fullwidth) content falls back to record lines
-            if (tableHasWideContent(tableToCells(node))) renderTableRecords(node, ctx);
+            if (inQuote || tableHasWideContent(tableToCells(node))) renderTableRecords(node, ctx);
             else renderTableGrid(node, ctx);
         })
         .exhaustive();
+};
+
+const renderCode = (node: Code, ctx: WalkContext): void => {
+    // Same rule as tables: the code text stays, the `pre` box cannot
+    if (ctx.quoteDepth > 0) {
+        ctx.emitter.pushText(node.value);
+        return;
+    }
+    wrapEntity(
+        ctx,
+        { type: 'pre', ...(node.lang ? { language: node.lang } : {}) },
+        () => ctx.emitter.pushText(node.value)
+    );
 };
 
 /** Last-resort handling so unknown node types never throw or vanish silently */
@@ -238,13 +260,7 @@ const renderBlockNode = (node: RootContent, ctx: WalkContext): void => {
     match(node)
         .with({ type: 'paragraph' }, (n) => walkInlineChildren(n.children, ctx))
         .with({ type: 'heading' }, (n) => renderHeading(n, ctx))
-        .with({ type: 'code' }, (n) =>
-            wrapEntity(
-                ctx,
-                { type: 'pre', ...(n.lang ? { language: n.lang } : {}) },
-                () => ctx.emitter.pushText(n.value)
-            )
-        )
+        .with({ type: 'code' }, (n) => renderCode(n, ctx))
         .with({ type: 'blockquote' }, (n) => renderBlockquote(n, ctx))
         .with({ type: 'list' }, (n) => renderList(n, ctx))
         .with({ type: 'table' }, (n) => renderTable(n, ctx))

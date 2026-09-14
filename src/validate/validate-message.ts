@@ -3,11 +3,13 @@
  * alignment, containment and nesting legality. Returns issues instead of
  * throwing so it can double as a test assertion and a consumer safety net.
  *
- * Nesting model (practical reading of the Bot API docs, to be re-checked
- * against the e2e round-trip):
+ * Nesting model (practical reading of the Bot API docs, verified against the
+ * e2e round-trip):
  * - pre / code contain nothing
  * - blockquote / expandable_blockquote are top-level only and cannot nest
- *   in each other; they may contain any non-blockquote entity
+ *   in each other; they may contain inline entities only — a nested block
+ *   (`pre`) is accepted by the API but makes clients stop rendering the quote
+ *   (block-in-quote), so compose quotes with `wrapInBlockquote`
  * - formatting entities (bold/italic/underline/strikethrough/spoiler) and
  *   text_link may contain anything except blockquotes
  */
@@ -24,6 +26,9 @@ const isQuote = (type: EntityType): boolean =>
     type === 'blockquote' || type === 'expandable_blockquote';
 
 const isOpaque = (type: EntityType): boolean => type === 'pre' || type === 'code';
+
+/** Block-level types: legal inside a quote per the API, broken in clients */
+const isBlock = (type: EntityType): boolean => type === 'pre';
 
 const splitsSurrogatePair = (text: string, index: number): boolean =>
     index > 0 &&
@@ -141,6 +146,12 @@ export const validateMessage = (message: RenderedMessage): ValidationIssue[] => 
                 issues.push({
                     code: 'illegal-nesting',
                     message: `entity #${entityIndex} (${entity.type}) must be top-level, found inside ${parent.entity.type}`,
+                    entityIndex,
+                });
+            } else if (isQuote(parent.entity.type) && isBlock(entity.type)) {
+                issues.push({
+                    code: 'block-in-quote',
+                    message: `entity #${entityIndex} (${entity.type}) is a block inside ${parent.entity.type}: clients stop rendering the quote at the first nested block`,
                     entityIndex,
                 });
             }

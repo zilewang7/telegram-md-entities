@@ -39,7 +39,8 @@ renderMarkdown(markdown, options?)   // → { text, entities }
 splitMessage(message, options?)      // → chunks fitting maxLength (4096) AND maxEntities (90)
 validateMessage(message)             // → offline Bot API rule check (offsets, nesting, budgets)
 toPreviewHtml(message, options?)     // → Telegram-like HTML for offline visual review
-wrapInBlockquote(message, expandable?) // e.g. LLM "thinking" sections
+wrapInBlockquote(message, expandable?) // e.g. LLM "thinking" sections (block-free)
+withoutBlockEntities(message)        // drop block entities, keep their text
 concatMessages(...parts)             // compose with automatic entity re-offsetting
 entitiesToMarkdown(message)          // REVERSE: {text, entities} -> markdown (this dialect)
 richBlocksToMarkdown(blocks, opts?)  // REVERSE: Bot API 10.1+ rich message blocks -> markdown
@@ -58,9 +59,11 @@ For token-streaming UIs: unclosed constructs render as their intended formatting
 
 GFM (tables, strikethrough, task lists, autolinks) + `||spoiler||` (loose Telegram-style pairing by default, `|| text ||` works; `spoilerMode: 'strict'` for CommonMark flanking) and `__underline__` dialects (Telegram MarkdownV2 semantics: `__` means underline, bold is `**`; `_italic_` unaffected — opt out with `underline: false`). Headings → bold; `---` → text divider; nested quotes flattened (Telegram quotes can't nest); bare URLs left for client auto-linking.
 
+**Quotes never hold block entities.** A block entity nested inside a quote passes the Bot API but beats the client: it stops rendering the quote there, and a quote that *starts* with one is dropped entirely — so quoted text silently leaks into the message body as ordinary text. This is not hypothetical: it is how a Gemini CoT leaked into a live bot's reply (2026-09-14), because the model's 4-space-indented bullets parse as an indented code block. Hence: a quoted code block keeps its text but loses the mono box, a quoted table renders as record lines (no mono grid to align anyway), and `wrapInBlockquote` flattens whatever block entities it is handed. `validateMessage` reports `block-in-quote` if you compose one by hand.
+
 **`<details>`/`<summary>`** HTML blocks (the collapsible-content pattern LLMs love) become **expandable blockquotes** — Telegram's native equivalent. The summary renders as a bold header line, padded with blank lines so the content sits below the client's ~3-visible-line collapse window: the quote actually folds and the content stays hidden until tapped (clients never collapse short quotes, and even collapsed ones show their first lines — without padding a short "secret" would be fully visible). Works with or without `<summary>`, across blank lines or on a single line; `<br>` inside becomes a newline; markdown inside renders normally; nested/quoted occurrences flatten (Telegram quotes can't nest). In streaming mode half-typed tags stay invisible and an in-progress summary grows live inside the quote.
 
-**Tables** (`table: 'auto'`, the default): narrow-only tables become a monospace-aligned `pre` grid — exact on every client, since mono fonts are actually monospace for ASCII. Tables containing East Asian Wide characters become a nested bullet list instead — `• **first cell**` per row with a `• header: value` sub-item per remaining cell. This is deliberate: inside Telegram `pre` blocks, CJK ideographs, `U+3000` and fullwidth punctuation resolve to *different* fallback fonts with *different* advance widths on each client (measured live on macOS/Android), so no padding scheme can align a mixed grid everywhere — and padded grids overflow phone bubbles and wrap anyway. Force a mode with `table: 'pre' | 'records' | 'plain'`.
+**Tables** (`table: 'auto'`, the default): narrow-only tables become a monospace-aligned `pre` grid — exact on every client, since mono fonts are actually monospace for ASCII. Tables containing East Asian Wide characters become a nested bullet list instead — `• **first cell**` per row with a `• header: value` sub-item per remaining cell. This is deliberate: inside Telegram `pre` blocks, CJK ideographs, `U+3000` and fullwidth punctuation resolve to *different* fallback fonts with *different* advance widths on each client (measured live on macOS/Android), so no padding scheme can align a mixed grid everywhere — and padded grids overflow phone bubbles and wrap anyway. Inside a quote there is no mono grid at all, so tables always render as record lines. Force a mode with `table: 'pre' | 'records' | 'plain'`.
 
 **CJK-friendly emphasis** via [micromark-extension-cjk-friendly](https://www.npmjs.com/package/micromark-extension-cjk-friendly): `的**“重点”**后` renders bold — vanilla CommonMark flanking rules silently break emphasis next to fullwidth punctuation, which hits Chinese/Japanese/Korean LLM output constantly. The streaming tail scanner applies the same relaxed rules, so in-progress CJK bold renders correctly mid-stream too.
 
@@ -77,6 +80,7 @@ Both target this dialect on purpose: the forward parser is the referee, so rever
 Rules discovered and verified against api.telegram.org (see `test/e2e/`):
 
 - entities beyond **exactly 100** per message are silently dropped (measured: 150 sent → 100 kept) — `splitMessage` budgets 90 per chunk
+- a **`pre` nested inside a quote** is accepted and returned unchanged by the API, yet renders broken on the client (quote cut at the block; a leading `pre` loses the whole quote) — seen live on a bot's CoT, so the rule is enforced at render/compose time and reported as `block-in-quote`
 - characters inside `code`/`pre` are not stylable — formatting is split around them up front
 - `text_link` with non-`http(s)`/`tg` URLs (e.g. `mailto:`) is silently dropped — such links degrade to plain text
 - the server freely splits/merges entities in its canonical form — the e2e suite compares per-character style maps, not raw entity lists

@@ -99,6 +99,7 @@ export type ValidationIssueCode =
     | 'zero-length'
     | 'overlap-not-nested'
     | 'illegal-nesting'
+    | 'block-in-quote'
     | 'text-too-long'
     | 'too-many-entities'
     | 'missing-url'

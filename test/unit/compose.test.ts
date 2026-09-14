@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { concatMessages } from '../../src/compose/concat-messages';
-import { wrapInBlockquote } from '../../src/compose/wrap-in-blockquote';
+import { withoutBlockEntities, wrapInBlockquote } from '../../src/compose/wrap-in-blockquote';
 import { renderMarkdown, validateMessage } from '../../src/index';
 
 describe('wrapInBlockquote', () => {
@@ -24,6 +24,29 @@ describe('wrapInBlockquote', () => {
             'blockquote',
             'bold',
         ]);
+    });
+
+    it('flattens a code block instead of nesting it', () => {
+        // A `pre` inside the quote makes clients cut the quote short (the
+        // thinking text then leaks into the message body) — text stays, box goes
+        const rendered = renderMarkdown('思考\n\n    const x = 1;');
+        expect(rendered.entities.map((entity) => entity.type)).toEqual(['pre']);
+
+        const wrapped = wrapInBlockquote(rendered, true);
+        expect(wrapped.entities).toEqual([
+            { type: 'expandable_blockquote', offset: 0, length: rendered.text.length },
+        ]);
+        expect(validateMessage(wrapped)).toEqual([]);
+    });
+});
+
+describe('withoutBlockEntities', () => {
+    it('drops blocks, keeps their text and inline formatting', () => {
+        const rendered = renderMarkdown('文本\n\n```js\nconst x = 1;\n```\n\n**粗体**');
+        const flat = withoutBlockEntities(rendered);
+
+        expect(flat.text).toBe(rendered.text);
+        expect(flat.entities.map((entity) => entity.type)).toEqual(['bold']);
     });
 });
 

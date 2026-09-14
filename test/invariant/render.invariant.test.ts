@@ -1,6 +1,7 @@
 import * as fc from 'fast-check';
-import { describe, it } from 'vitest';
-import { renderMarkdown } from '../../src/index';
+import { describe, expect, it } from 'vitest';
+import { renderMarkdown, validateMessage, wrapInBlockquote } from '../../src/index';
+import type { RenderedMessage, ValidationIssue } from '../../src/types';
 import { loadCorpus } from '../helpers/corpus';
 import { expectWellFormed } from '../helpers/assertions';
 
@@ -39,6 +40,25 @@ describe('renderMarkdown invariants', () => {
         fc.assert(
             fc.property(markdownSoup, (input) => {
                 expectWellFormed(renderMarkdown(input));
+            }),
+            { numRuns: 500 }
+        );
+    });
+
+    it('no render nests a block entity inside a quote', () => {
+        const blockInsideQuote = (input: RenderedMessage): ValidationIssue[] =>
+            validateMessage(input).filter((issue) => issue.code === 'block-in-quote');
+
+        for (const { name, markdown } of loadCorpus()) {
+            const message = renderMarkdown(markdown);
+            expect(blockInsideQuote(message), name).toEqual([]);
+            // Wrapping in a quote must not reintroduce one either
+            expect(blockInsideQuote(wrapInBlockquote(message, true)), name).toEqual([]);
+        }
+
+        fc.assert(
+            fc.property(markdownSoup, (input) => {
+                expect(blockInsideQuote(renderMarkdown(input))).toEqual([]);
             }),
             { numRuns: 500 }
         );

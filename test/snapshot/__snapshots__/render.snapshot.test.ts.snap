@@ -644,6 +644,64 @@ exports[`renderMarkdown corpus snapshots > edge-nesting 1`] = `
 }
 `;
 
+exports[`renderMarkdown corpus snapshots > edge-quote-blocks 1`] = `
+{
+  "entities": [
+    {
+      "length": 51,
+      "offset": 0,
+      "type": "blockquote",
+    },
+    {
+      "length": 26,
+      "offset": 53,
+      "type": "blockquote",
+    },
+    {
+      "length": 43,
+      "offset": 81,
+      "type": "blockquote",
+    },
+    {
+      "length": 2,
+      "offset": 110,
+      "type": "bold",
+    },
+    {
+      "length": 51,
+      "offset": 126,
+      "type": "blockquote",
+    },
+    {
+      "length": 16,
+      "offset": 179,
+      "type": "blockquote",
+    },
+  ],
+  "text": "引用里的缩进代码块:文本保留,等宽块去掉(引用内不能有块级实体)
+
+const leaked = 1;
+
+引用里的围栏代码块同理:
+
+const x = 1;
+
+引用里的表格转为记录行(等宽网格在引用里不可用):
+
+• 茶杯
+    • 数量: 2
+
+LLM 思维链常见的四空格缩进列表,不能变成缩进代码块:
+
+*   子要点一
+    *   更深一层
+
+引用里的嵌套引用被扁平化
+
+内层",
+}
+`;
+
 exports[`renderMarkdown corpus snapshots > gfm-autolink 1`] = `
 {
   "entities": [],

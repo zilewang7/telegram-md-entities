@@ -67,6 +67,27 @@ describe('validateMessage', () => {
         ).toContain('illegal-nesting');
     });
 
+    it('flags a block entity inside a quote', () => {
+        // The API accepts this, clients cannot render it: the quote stops at
+        // the nested block and its text leaks into the message body
+        expect(
+            codes(
+                message('quoted const x = 1;', [
+                    { type: 'expandable_blockquote', offset: 0, length: 19 },
+                    { type: 'pre', offset: 7, length: 12 },
+                ])
+            )
+        ).toContain('block-in-quote');
+        expect(
+            codes(
+                message('quoted text', [
+                    { type: 'blockquote', offset: 0, length: 11 },
+                    { type: 'bold', offset: 0, length: 6 },
+                ])
+            )
+        ).not.toContain('block-in-quote');
+    });
+
     it('flags text_link without url and stray fields', () => {
         expect(codes(message('abc', [{ type: 'text_link', offset: 0, length: 3 }]))).toContain(
             'missing-url'

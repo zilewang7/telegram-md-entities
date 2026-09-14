@@ -17,7 +17,7 @@ export type { RawSplitResult, SplitRawOptions } from './split/split-raw-markdown
 export { validateMessage } from './validate/validate-message';
 export { toPreviewHtml } from './preview/to-preview-html';
 export { TELEGRAM_PREVIEW_CSS } from './preview/styles';
-export { wrapInBlockquote } from './compose/wrap-in-blockquote';
+export { wrapInBlockquote, withoutBlockEntities } from './compose/wrap-in-blockquote';
 export { concatMessages } from './compose/concat-messages';
 export { richBlocksToMarkdown } from './rich/rich-blocks-to-markdown';
 export { richTextToPlain } from './rich/rich-text-to-markdown';
