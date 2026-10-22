@@ -36,7 +36,7 @@ On this repo's 17-fixture corpus, the popular string pipeline (`telegramify-mark
 
 ```ts
 renderMarkdown(markdown, options?)   // → { text, entities }
-splitMessage(message, options?)      // → chunks fitting maxLength (4096) AND maxEntities (90)
+splitMessage(message, options?)      // → chunks fitting maxLength (4096), maxEntities (90) and maxEntityUrlBytes (9000)
 validateMessage(message)             // → offline Bot API rule check (offsets, nesting, budgets)
 toPreviewHtml(message, options?)     // → Telegram-like HTML for offline visual review
 wrapInBlockquote(message, expandable?) // e.g. LLM "thinking" sections (block-free)
@@ -80,6 +80,7 @@ Both target this dialect on purpose: the forward parser is the referee, so rever
 Rules discovered and verified against api.telegram.org (see `test/e2e/`):
 
 - entities beyond **exactly 100** per message are silently dropped (measured: 150 sent → 100 kept) — `splitMessage` budgets 90 per chunk
+- a message whose entities carry too many URL bytes is rejected outright with `400 ENTITIES_TOO_LONG` — the budget is Σ URL lengths + ~20 per link ≈ **10000** UTF-16 units (measured 2026-10-22: 9600 across 20 links passed, 9640 across the same 20 was rejected; text covered by entities does not count) — `splitMessage` budgets 9000 per chunk
 - a **`pre` nested inside a quote** is accepted and returned unchanged by the API, yet renders broken on the client (quote cut at the block; a leading `pre` loses the whole quote) — seen live on a bot's CoT, so the rule is enforced at render/compose time and reported as `block-in-quote`
 - characters inside `code`/`pre` are not stylable — formatting is split around them up front
 - `text_link` with non-`http(s)`/`tg` URLs (e.g. `mailto:`) is silently dropped — such links degrade to plain text

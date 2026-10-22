@@ -8,6 +8,19 @@ const bold = (offset: number, length: number): MessageEntity => ({
     length,
 });
 
+/** Telegram's ENTITIES_TOO_LONG budget: URLs plus ~20 per link */
+const urlBytes = (chunk: RenderedMessage): number =>
+    chunk.entities.reduce(
+        (total, entity) => total + (entity.url ? entity.url.length + 20 : 0),
+        0
+    );
+
+/** A source line with a grounding-sized redirect URL */
+const sourceLine = (index: number): string => `[${index}] example${index}.com`;
+
+const groundingUrl = (index: number): string =>
+    `https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQ${String(index).padStart(4, '0')}${'x'.repeat(200)}`;
+
 describe('splitMessage', () => {
     it('returns a single chunk when everything fits', () => {
         const message: RenderedMessage = { text: 'short 文本', entities: [bold(0, 5)] };
@@ -91,5 +104,66 @@ describe('splitMessage', () => {
         for (const chunk of chunks) {
             expect(chunk.entities.length).toBeLessThanOrEqual(8);
         }
+    });
+
+    it('splits when the entity URLs overrun the URL budget', () => {
+        // A search-grounding footer: one long redirect URL per source line
+        const title = 'GoogleSearch\n';
+        const lines = Array.from({ length: 40 }, (_, i) => sourceLine(i + 1));
+        const body = lines.join('\n');
+        const text = title + body;
+        const links: MessageEntity[] = lines.map((line, i) => ({
+            type: 'text_link',
+            offset: text.indexOf(line),
+            length: line.length,
+            url: groundingUrl(i + 1),
+        }));
+        const quote: MessageEntity = {
+            type: 'expandable_blockquote',
+            offset: title.length,
+            length: body.length,
+        };
+        const chunks = splitMessage({ text, entities: [quote, bold(0, 12), ...links] });
+
+        expect(chunks.length).toBeGreaterThan(1);
+        for (const chunk of chunks) {
+            expect(urlBytes(chunk)).toBeLessThanOrEqual(9000);
+            // The fold must survive the split, reopened on every chunk
+            expect(
+                chunk.entities.some(
+                    (entity) =>
+                        entity.type === 'expandable_blockquote' ||
+                        entity.type === 'blockquote'
+                )
+            ).toBe(true);
+        }
+        expect(chunks.map((chunk) => chunk.text).join('\n')).toContain(lines[39] ?? '');
+    });
+
+    it('keeps a link-laden message whole while it fits the URL budget', () => {
+        const lines = Array.from({ length: 5 }, (_, i) => sourceLine(i + 1));
+        const text = lines.join('\n');
+        const entities: MessageEntity[] = lines.map((line, i) => ({
+            type: 'text_link',
+            offset: text.indexOf(line),
+            length: line.length,
+            url: groundingUrl(i + 1),
+        }));
+        expect(splitMessage({ text, entities })).toHaveLength(1);
+    });
+
+    it('terminates when a single entity overruns the whole URL budget', () => {
+        const text = `[1] example.com\n${'tail text '.repeat(10)}`;
+        const entities: MessageEntity[] = [
+            {
+                type: 'text_link',
+                offset: 0,
+                length: 7,
+                url: `https://example.com/${'x'.repeat(9500)}`,
+            },
+        ];
+        const chunks = splitMessage({ text, entities });
+        expect(chunks.length).toBeGreaterThanOrEqual(1);
+        expect(chunks.map((chunk) => chunk.text).join('')).toContain('tail text');
     });
 });

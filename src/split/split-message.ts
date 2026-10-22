@@ -1,19 +1,51 @@
 /**
- * Dual-budget message splitter: every chunk fits BOTH maxLength (UTF-16)
- * and maxEntities. The entity budget collapses into a cut ceiling — with
- * entities sorted by offset, chunk-1's entity count is monotinically
- * non-decreasing in the cut position, so cutting before the
- * (maxEntities+1)-th entity's start bounds the count; the boundary-quality
- * search then runs below that ceiling unchanged.
+ * Multi-budget message splitter: every chunk fits maxLength (UTF-16),
+ * maxEntities and maxEntityUrlBytes. All three budgets collapse into a cut
+ * ceiling — with entities sorted by offset, a chunk's entity count and URL
+ * payload are both monotonically non-decreasing in the cut position, so
+ * cutting before the first entity that would overrun either budget bounds
+ * them; the boundary-quality search then runs below that ceiling unchanged.
  */
 import type { MessageEntity, RenderedMessage, SplitOptions } from '../types';
-import { DEFAULT_MAX_ENTITIES, DEFAULT_MAX_LENGTH } from '../constants';
+import {
+    DEFAULT_MAX_ENTITIES,
+    DEFAULT_MAX_ENTITY_URL_BYTES,
+    DEFAULT_MAX_LENGTH,
+    ENTITY_URL_OVERHEAD,
+} from '../constants';
 import { normalizeEntities } from '../render/normalize-entities';
 import { trimMessageEdges } from '../shared/trim-message';
 import { clipEntitiesAt } from './clip-entities';
 import { clampSurrogate, findCutPosition } from './find-cut';
 
 const NEWLINE_FLOOR_RATIO = 0.25;
+
+/**
+ * What one entity adds to the ENTITIES_TOO_LONG budget: its URL plus the
+ * per-link overhead Telegram charges (non-link entities add nothing)
+ */
+const entityUrlCost = (entity: MessageEntity): number =>
+    entity.url ? entity.url.length + ENTITY_URL_OVERHEAD : 0;
+
+const entityUrlBytes = (entities: readonly MessageEntity[]): number =>
+    entities.reduce((total, entity) => total + entityUrlCost(entity), 0);
+
+/**
+ * Cut ceiling that keeps the URL payload inside the budget: the offset of the
+ * first URL entity that would not fit. An entity that alone overruns the
+ * budget cannot be fixed by cutting, so it is charged and stepped over —
+ * progress beats a per-chunk violation the server would fix.
+ */
+const entityUrlCeil = (entities: readonly MessageEntity[], budget: number): number => {
+    let spent = 0;
+    for (const entity of entities) {
+        const cost = entityUrlCost(entity);
+        if (cost === 0) continue;
+        if (spent + cost > budget && entity.offset > 0) return entity.offset;
+        spent += cost;
+    }
+    return Number.POSITIVE_INFINITY;
+};
 
 /**
  * A cut strictly inside a pre entity: prefer moving it back to the pre's
@@ -50,22 +82,32 @@ export const splitMessage = (
 ): RenderedMessage[] => {
     const maxLength = options?.maxLength ?? DEFAULT_MAX_LENGTH;
     const maxEntities = options?.maxEntities ?? DEFAULT_MAX_ENTITIES;
+    const maxEntityUrlBytes =
+        options?.maxEntityUrlBytes ?? DEFAULT_MAX_ENTITY_URL_BYTES;
 
     const chunks: RenderedMessage[] = [];
     let current = canonicalize(message);
 
-    while (current.text.length > maxLength || current.entities.length > maxEntities) {
+    while (
+        current.text.length > maxLength ||
+        current.entities.length > maxEntities ||
+        entityUrlBytes(current.entities) > maxEntityUrlBytes
+    ) {
         const overflowEntity = current.entities[maxEntities];
         const entityCeil =
             current.entities.length > maxEntities && overflowEntity
                 ? overflowEntity.offset
                 : Number.POSITIVE_INFINITY;
+        const urlCeil = entityUrlCeil(current.entities, maxEntityUrlBytes);
 
         // max(1, ...) guards hostile inputs (e.g. 90+ entities at offset 0):
         // progress beats a per-chunk budget violation the server would fix
         const hardCut = Math.max(
             1,
-            clampSurrogate(current.text, Math.min(maxLength, entityCeil, current.text.length))
+            clampSurrogate(
+                current.text,
+                Math.min(maxLength, entityCeil, urlCeil, current.text.length)
+            )
         );
 
         let cut = findCutPosition(current.text, hardCut);

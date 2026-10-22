@@ -90,6 +90,13 @@ export interface SplitOptions {
     maxLength?: number;
     /** Max entities per chunk (default 90, under Telegram's ~100 silent cap) */
     maxEntities?: number;
+    /**
+     * Max entity URL payload per chunk (default 9000). Telegram answers 400
+     * ENTITIES_TOO_LONG once the URLs a message's entities carry pass ~10000
+     * UTF-16 units (plus ~20 per link), so a chunk that overruns this budget
+     * is split even when its text and entity count fit.
+     */
+    maxEntityUrlBytes?: number;
 }
 
 export type ValidationIssueCode =
