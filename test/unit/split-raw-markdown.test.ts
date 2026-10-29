@@ -166,6 +166,41 @@ describe('splitRawMarkdownAtNewline', () => {
         const { head } = splitRawMarkdownAtNewline(raw, raw.length - 3);
         expect(head).toBe('');
     });
+
+    it('reopens an unclosed <details> instead of swallowing the buffer when repair is on', () => {
+        const body = Array.from({ length: 30 }, (_, i) => `第 ${i} 段内容，足够长的一行说明文字。`).join('\n\n');
+        const raw = `<details>\n<summary>听后感<b>解析</b></summary>\n\n${body}\n</details>`;
+        const { head, rest } = splitRawMarkdownAtNewline(raw, Math.floor(raw.length / 4), {
+            repair: true,
+        });
+
+        // Cut on a line break, never mid-sentence
+        expect(head.endsWith('\n')).toBe(true);
+        expect(head.trimEnd().endsWith('。')).toBe(true);
+        // The continuation re-establishes the fold, marked as a continuation
+        expect(rest.startsWith('<details>\n<summary>听后感<b>解析</b>（续）</summary>')).toBe(true);
+        expect(rest.endsWith(raw.slice(head.length))).toBe(true);
+
+        // Both halves are folds: the streaming render closes the open one
+        expect(
+            renderMarkdown(head, { streaming: true }).entities.some(
+                (entity) => entity.type === 'expandable_blockquote'
+            )
+        ).toBe(true);
+        expect(
+            renderMarkdown(rest).entities.some(
+                (entity) => entity.type === 'expandable_blockquote'
+            )
+        ).toBe(true);
+    });
+
+    it('reopens a fence when repair cuts inside it', () => {
+        const codeLines = Array.from({ length: 20 }, (_, i) => `console.log(${i});`);
+        const raw = '```js\n' + codeLines.join('\n') + '\n```';
+        const { head, rest } = splitRawMarkdownAtNewline(raw, 10, { repair: true });
+        expect(head.startsWith('```js\n')).toBe(true);
+        expect(rest.startsWith('```js\n')).toBe(true);
+    });
 });
 
 describe('stray details/summary tags render silently', () => {

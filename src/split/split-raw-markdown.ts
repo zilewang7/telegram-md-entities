@@ -23,6 +23,17 @@ export interface SplitRawOptions {
     continuedLabel?: string;
 }
 
+export interface SplitRawAtNewlineOptions extends SplitRawOptions {
+    /**
+     * Cut anyway when no CLEAN line boundary qualifies: use the last line
+     * break at/after minPos and reopen the constructs still open there in
+     * `rest`. Without it an unclosed fold/fence swallows the whole buffer,
+     * so the message gets finalized mid-sentence and the continuation renders
+     * as plain text (fold lost, no fold header).
+     */
+    repair?: boolean;
+}
+
 /** Sentence-ending characters usable as split boundaries */
 const SENTENCE_ENDINGS = new Set(['。', '！', '？', '；', '!', '?', ';', '.']);
 
@@ -187,7 +198,8 @@ export const splitRawMarkdown = (
  */
 export const splitRawMarkdownAtNewline = (
     raw: string,
-    minPos: number = 0
+    minPos: number = 0,
+    options: SplitRawAtNewlineOptions = {}
 ): RawSplitResult => {
     for (let index = raw.lastIndexOf('\n\n'); index >= minPos; index = raw.lastIndexOf('\n\n', index - 1)) {
         if (isCleanCut(scanRawCut(raw, index + 2))) {
@@ -198,6 +210,10 @@ export const splitRawMarkdownAtNewline = (
         if (isCleanCut(scanRawCut(raw, index + 1))) {
             return { head: raw.slice(0, index), rest: raw.slice(index + 1) };
         }
+    }
+    if (options.repair) {
+        const cut = paragraphCuts(raw, minPos, raw.length)[0] ?? newlineCuts(raw, minPos, raw.length)[0];
+        if (cut !== undefined) return splitAt(raw, cut, options);
     }
     return { head: '', rest: raw };
 };
