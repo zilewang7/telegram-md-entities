@@ -22,7 +22,8 @@ export const forwardZh = {
   'forward.clear': '清空',
   'forward.placeholder': '粘贴 Markdown：**粗体**、`行内代码`、> 引用、```代码块```、[链接](https://example.com)',
   'forward.counter': '{length} / {max}',
-  'forward.splitHint': '超过 Telegram 单条上限 {max} 字符（约 {parts} 条），发送时可能需要手动分条。',
+  'forward.splitHint':
+    '超过 {max} 字符，发送时客户端会自动拆成约 {parts} 条消息，不用手动分条；拆分点处的格式会在每条消息里各自重新开始。',
   'forward.preview.title': '预览',
   'forward.preview.entities': '{count} 个实体',
   'forward.preview.empty': '输入 Markdown 后，这里会显示 Telegram 风格的预览。',
@@ -85,7 +86,7 @@ export const forwardEn: Record<keyof typeof forwardZh, string> = {
     'Paste Markdown: **bold**, `inline code`, > quote, ```code block```, [link](https://example.com)',
   'forward.counter': '{length} / {max}',
   'forward.splitHint':
-    'Longer than one Telegram message ({max} characters, about {parts} messages) — you may need to send it in parts.',
+    'Over {max} characters — Telegram splits it into about {parts} messages when you send. No manual work; formatting restarts on each part.',
   'forward.preview.title': 'Preview',
   'forward.preview.entities': 'entities: {count}',
   'forward.preview.empty': 'Type Markdown above and a Telegram-style preview appears here.',

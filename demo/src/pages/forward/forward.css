@@ -28,7 +28,7 @@
 }
 
 .fw-editor-head .length-counter.over {
-  color: var(--danger);
+  color: var(--warning);
   font-weight: 600;
 }
 

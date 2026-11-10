@@ -71,7 +71,7 @@ export const MarkdownEditor = ({ value, onChange, onLoadSample, onClear }: Markd
         onChange={handleChange}
       />
       {overLimit && (
-        <p className="notice warning">
+        <p className="notice info">
           {t('forward.splitHint', { max: DEFAULT_MAX_LENGTH, parts: messageParts })}
         </p>
       )}
