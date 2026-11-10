@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import type { ChangeEvent } from 'react';
 import { DEFAULT_MAX_LENGTH } from 'telegram-md-entities';
 import { match } from 'ts-pattern';
+import { MESSAGE_ENTITY_LIMIT, MESSAGE_ENTITY_WARN_LIMIT } from '../../core/entity-convert';
 import { useI18n } from '../../i18n/i18n-context';
 import { PreviewBubble } from './preview-bubble';
 import type { ForwardPreview } from './use-forward-preview';
@@ -15,8 +16,12 @@ interface PreviewPaneProps {
 
 interface PreviewMeta {
   label: string;
+  /** The sent text is longer than one message and will be split */
   over: boolean;
   parts: number;
+  /** Entities of the whole message: Telegram drops the excess silently */
+  entities: number;
+  entityRisk: boolean;
 }
 
 /**
@@ -38,21 +43,24 @@ export const PreviewPane = ({
   const meta = useMemo<PreviewMeta | null>(() => {
     if (preview.kind !== 'ready') return null;
     const textLength = preview.rendered.text.length;
+    const entities = preview.rendered.entities.length;
+    const entityRisk = entities >= MESSAGE_ENTITY_WARN_LIMIT;
     if (textLength > DEFAULT_MAX_LENGTH) {
       const parts = Math.ceil(textLength / DEFAULT_MAX_LENGTH);
       return {
         label: t('forward.preview.meta.split', { chars: textLength, parts }),
         over: true,
         parts,
+        entities,
+        entityRisk,
       };
     }
     return {
-      label: t('forward.preview.meta', {
-        chars: textLength,
-        entities: preview.rendered.entities.length,
-      }),
+      label: t('forward.preview.meta', { chars: textLength, entities }),
       over: false,
       parts: 1,
+      entities,
+      entityRisk,
     };
   }, [preview, t]);
 
@@ -87,13 +95,16 @@ export const PreviewPane = ({
           {t('forward.splitHint', { max: DEFAULT_MAX_LENGTH, parts: meta.parts })}
         </p>
       )}
-      <p className="hint">
-        {t(
-          collapsedQuotes && preview.kind === 'ready' && preview.hasQuote
-            ? 'forward.preview.note.collapsed'
-            : 'forward.preview.note',
-        )}
-      </p>
+      {meta !== null && meta.entityRisk && (
+        <p className="notice warning">
+          {t(meta.over ? 'forward.entityCap.split' : 'forward.entityCap', {
+            entities: meta.entities,
+            max: MESSAGE_ENTITY_LIMIT,
+            parts: meta.parts,
+          })}
+        </p>
+      )}
+      <p className="hint">{t('forward.preview.note')}</p>
     </section>
   );
 };

@@ -24,14 +24,16 @@ export const forwardZh = {
   'forward.counter': '{length} 字符',
   'forward.splitHint':
     '超过 {max} 字符，发送时客户端会自动拆成约 {parts} 条消息，不用手动分条；拆分点处的格式会在每条消息里各自重新开始。',
+  'forward.entityCap':
+    '实体 {entities} 个，接近 Telegram 单条消息的实体上限（约 {max} 个）；超出的部分发送时可能被静默丢掉。',
+  'forward.entityCap.split':
+    '实体 {entities} 个，接近 Telegram 单条消息的实体上限（约 {max} 个）；拆成约 {parts} 条发送时每条分别计数，是否被吞取决于拆分位置。',
   'forward.preview.title': '预览',
   'forward.preview.meta': '{chars} 字符 · {entities} 个实体',
   'forward.preview.meta.split': '{chars} 字符 · 约 {parts} 条',
   'forward.preview.empty': '输入 Markdown 后，这里会显示 Telegram 风格的预览。',
   'forward.preview.failed': '这段 Markdown 无法渲染，请检查内容。',
   'forward.preview.note': '按 Telegram 客户端的样式渲染，仅供参考。',
-  'forward.preview.note.collapsed':
-    '按 Telegram 客户端的样式渲染：可折叠引用折到 3 行，点右下角箭头展开；引用不超过 3 行时没有箭头。',
   'forward.copy.title': '复制到 Telegram',
   'forward.copy.hint': '复制后到 Telegram 输入框粘贴',
   'forward.copy.rich': '复制富文本',
@@ -95,14 +97,16 @@ export const forwardEn: Record<keyof typeof forwardZh, string> = {
   'forward.counter': 'chars: {length}',
   'forward.splitHint':
     'Over {max} characters — Telegram splits it into about {parts} messages when you send. No manual work; formatting restarts on each part.',
+  'forward.entityCap':
+    'entities: {entities} — close to Telegram’s per-message limit (~{max}), so the excess may be dropped silently on send.',
+  'forward.entityCap.split':
+    'entities: {entities} — close to Telegram’s per-message limit (~{max}). Sent as about {parts} parts, each counted on its own; whether the excess survives depends on where it splits.',
   'forward.preview.title': 'Preview',
   'forward.preview.meta': 'chars: {chars} · entities: {entities}',
   'forward.preview.meta.split': 'chars: {chars} · ~{parts} messages',
   'forward.preview.empty': 'Type Markdown above and a Telegram-style preview appears here.',
   'forward.preview.failed': 'This Markdown cannot be rendered. Check the content.',
   'forward.preview.note': 'Rendered with Telegram client styling, for reference only.',
-  'forward.preview.note.collapsed':
-    'Rendered like a Telegram client: a collapsible quote keeps three lines — click the chevron to expand. Quotes of three lines or fewer show no chevron.',
   'forward.copy.title': 'Copy to Telegram',
   'forward.copy.hint': 'Then paste into any Telegram chat',
   'forward.copy.rich': 'Copy rich text',
