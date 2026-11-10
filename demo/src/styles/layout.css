@@ -1,0 +1,157 @@
+/*
+ * Page shell: a single centred column that grows to two columns for the
+ * forward panel on wide screens.
+ */
+
+.page {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 28px var(--page-gutter) 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.app-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.app-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.app-title {
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+
+.app-subtitle {
+  font-size: 15px;
+  color: var(--text-muted);
+  max-width: 60ch;
+}
+
+.app-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 13px;
+}
+
+.app-tabs {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+}
+
+.panel-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.panel-stack[hidden] {
+  display: none;
+}
+
+/* Two-column layout for the forward panel on wide screens; the explicit
+ * minmax(0,1fr) column keeps long code lines from overflowing on phones */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+
+/* Tab labels: full text on wide screens, short text when the tabs get tight */
+.tab-label-short {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .tab-label-full {
+    display: none;
+  }
+
+  .tab-label-short {
+    display: inline;
+  }
+}
+
+@media (min-width: 820px) {
+  .split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.platform-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.platform-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.platform-chip {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.platform-chip:hover {
+  background: var(--surface-2);
+}
+
+.platform-chip[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.app-footer {
+  margin-top: 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 520px) {
+  .page {
+    padding-top: 20px;
+    gap: 18px;
+  }
+
+  .app-title {
+    font-size: 22px;
+  }
+
+  .segment {
+    padding: 9px 6px;
+    font-size: 13px;
+  }
+}

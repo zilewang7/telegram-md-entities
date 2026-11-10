@@ -13,6 +13,8 @@ const { text, entities } = renderMarkdown(llmOutput);
 await bot.api.sendMessage(chatId, text, { entities }); // grammy / telegraf / raw HTTP — same shape
 ```
 
+**Try it in the browser → [tgmd.zile.wang](https://tgmd.zile.wang)** — paste markdown, copy it as rich text, paste into any Telegram chat; or turn a copied Telegram message back into markdown. Runs entirely in the page, nothing is uploaded. ([source](demo/))
+
 <p align="center">
   <img src="assets/streaming-demo.webp" width="840" alt="Left: an LLM emitting raw markdown token by token. Right: the same message rendered live in Telegram via entities.">
 </p>

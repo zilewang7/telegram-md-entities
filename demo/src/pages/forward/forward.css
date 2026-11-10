@@ -1,0 +1,192 @@
+/*
+ * Forward panel (Markdown -> Telegram).
+ *
+ * .split (layout.css) gives the two desktop columns: editor on the left,
+ * preview on the right; below 820px they stack. Every other selector here is
+ * panel-local and prefixed `fw-`; the shared vocabulary (section, field,
+ * button, notice, chip) stays in base.css.
+ */
+
+/* ---- editor ---- */
+
+/* Stretch both columns so the preview stage lines up with the textarea; the
+ * explicit track keeps a wide bubble from pushing the grid past the viewport */
+.split.fw-split {
+  align-items: stretch;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.field.fw-textarea {
+  min-height: 248px;
+  tab-size: 2;
+}
+
+.fw-editor-head .length-counter {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.fw-editor-head .length-counter.over {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.fw-editor-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.fw-editor-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.fw-editor-buttons .button.ghost {
+  font-size: 13px;
+}
+
+.fw-syntax-chips {
+  row-gap: 6px;
+}
+
+/* ---- preview ---- */
+
+.fw-stage {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 240px;
+  max-height: 560px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  overflow: auto;
+}
+
+.fw-stage-empty {
+  margin: auto;
+  max-width: 30ch;
+  text-align: center;
+}
+
+.fw-bubble {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* ---- copy actions ---- */
+
+.fw-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.fw-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.fw-action {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fw-action-button {
+  width: 100%;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.fw-action-hint {
+  padding: 0 2px;
+}
+
+.fw-badge {
+  padding: 0 6px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+/* ---- copy result ---- */
+
+.fw-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.fw-status-channel {
+  padding: 0 7px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.7;
+  opacity: 0.7;
+}
+
+/* ---- text + entities ---- */
+
+.fw-entity-json .collapsible-summary {
+  float: right;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* ---- responsive ---- */
+
+@media (min-width: 820px) {
+  .split.fw-split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 760px) {
+  .fw-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .field.fw-textarea {
+    min-height: 200px;
+  }
+
+  .fw-stage {
+    min-height: 200px;
+    padding: 12px;
+  }
+
+  .fw-editor-foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fw-editor-buttons {
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+}

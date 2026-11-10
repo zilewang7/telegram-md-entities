@@ -1,0 +1,298 @@
+/*
+ * The "learn more" panel. Everything is scoped under the ab- prefix so no rule
+ * here can leak into the forward/reverse panels. Where a global class is
+ * reused (.card, .chip, .code-block) the selector is compounded so this file
+ * wins over base.css no matter which stylesheet is injected first.
+ */
+
+/* ---- shared section head ---- */
+
+.ab-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ---- capability matrix ---- */
+
+.ab-matrix.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ab-table-wrap {
+  overflow-x: auto;
+}
+
+.ab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.ab-table th,
+.ab-table td {
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+
+.ab-table thead th {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+/* The note column carries the longest text, so let the headers wrap instead
+   of holding a nowrap line that squeezes it */
+.ab-table thead th:first-child {
+  width: 18%;
+}
+
+.ab-table thead th:last-child {
+  width: 40%;
+}
+
+.ab-table tbody th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ab-table tbody tr:last-child > th,
+.ab-table tbody tr:last-child > td {
+  border-bottom: none;
+}
+
+.ab-table tbody tr[data-active='true'] > th,
+.ab-table tbody tr[data-active='true'] > td {
+  background: var(--accent-soft);
+}
+
+.ab-table tbody tr[data-active='true'] > th {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.ab-client {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ab-badge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.ab-mark {
+  margin-right: 3px;
+  font-weight: 700;
+}
+
+.ab-mark-yes {
+  color: var(--success);
+}
+
+.ab-mark-no {
+  color: var(--danger);
+}
+
+.ab-note {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.ab-legend {
+  padding: 0 18px 14px;
+}
+
+/* Narrow screens: the same rows as cards, four columns do not fit there */
+.ab-matrix-cards {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 14px;
+  list-style: none;
+}
+
+.ab-matrix-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.ab-matrix-card[data-active='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ab-matrix-card-head {
+  font-weight: 600;
+}
+
+.ab-matrix-card-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ab-matrix-card-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ab-matrix-card-value {
+  font-size: 13.5px;
+}
+
+.ab-matrix-card-note {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+@media (max-width: 720px) {
+  .ab-table-wrap {
+    display: none;
+  }
+
+  .ab-matrix-cards {
+    display: flex;
+  }
+}
+
+/* ---- how it works ---- */
+
+.ab-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ab-step {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.ab-step-index {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ab-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ab-step-title {
+  font-size: 14px;
+}
+
+.ab-step-text {
+  font-size: 13.5px;
+  line-height: 1.65;
+}
+
+/* ---- library intro ---- */
+
+.ab-library.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ab-library-text {
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.ab-library-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ---- supported markdown ---- */
+
+.ab-syntax-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ab-syntax-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ab-syntax-sample {
+  color: var(--accent-strong);
+  font-size: 11.5px;
+}
+
+.ab-syntax-name {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* ---- known limitations ---- */
+
+.ab-limits.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 18px 14px 34px;
+  list-style: none;
+}
+
+.ab-limit {
+  position: relative;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.ab-limit::before {
+  content: '—';
+  position: absolute;
+  left: -18px;
+  color: var(--text-muted);
+}
