@@ -33,6 +33,17 @@ The target is an nginx container on the same host as `zile.wang`, routed by
 Traefik (`Host(\`tgmd.zile.wang\`)`) with an automatic Let's Encrypt
 certificate (DNS-01 through Cloudflare).
 
+## Languages
+
+The UI ships in Chinese and English. The language comes from `?lang=` (`zh` or
+`en`), then the saved choice, then the browser language; the button in the
+header switches it in place and updates `<html lang>`, the title and the
+description.
+
+All copy lives in `src/i18n/messages/`. The Chinese files define the key set;
+the English files must cover exactly the same keys, which the type system
+enforces (`Record<keyof typeof commonZh, string>`).
+
 ## Layout
 
 - `src/core/` — the conversion pipeline: `markdown → entities → clipboard HTML`
