@@ -25,9 +25,11 @@ export const forwardZh = {
   'forward.splitHint':
     '超过 {max} 字符，发送时客户端会自动拆成约 {parts} 条消息，不用手动分条；拆分点处的格式会在每条消息里各自重新开始。',
   'forward.entityCap':
-    '实体 {entities} 个，接近 Telegram 单条消息的实体上限（约 {max} 个）；超出的部分发送时可能被静默丢掉。',
+    '实体 {entities} 个，{level} Telegram 单条消息的实体上限（约 {max} 个）；超出的部分发送时可能被静默丢掉。',
   'forward.entityCap.split':
-    '实体 {entities} 个，接近 Telegram 单条消息的实体上限（约 {max} 个）；拆成约 {parts} 条发送时每条分别计数，是否被吞取决于拆分位置。',
+    '实体 {entities} 个，{level} Telegram 单条消息的实体上限（约 {max} 个）；拆成约 {parts} 条发送时每条分别计数，是否被吞取决于拆分位置。',
+  'forward.entityCap.level.near': '接近',
+  'forward.entityCap.level.over': '超出',
   'forward.preview.title': '预览',
   'forward.preview.meta': '{chars} 字符 · {entities} 个实体',
   'forward.preview.meta.split': '{chars} 字符 · 约 {parts} 条',
@@ -98,9 +100,11 @@ export const forwardEn: Record<keyof typeof forwardZh, string> = {
   'forward.splitHint':
     'Over {max} characters — Telegram splits it into about {parts} messages when you send. No manual work; formatting restarts on each part.',
   'forward.entityCap':
-    'entities: {entities} — close to Telegram’s per-message limit (~{max}), so the excess may be dropped silently on send.',
+    'entities: {entities} — {level} Telegram’s per-message limit (~{max}), so the excess may be dropped silently on send.',
   'forward.entityCap.split':
-    'entities: {entities} — close to Telegram’s per-message limit (~{max}). Sent as about {parts} parts, each counted on its own; whether the excess survives depends on where it splits.',
+    'entities: {entities} — {level} Telegram’s per-message limit (~{max}). Sent as about {parts} parts, each counted on its own; whether the excess survives depends on where it splits.',
+  'forward.entityCap.level.near': 'close to',
+  'forward.entityCap.level.over': 'over',
   'forward.preview.title': 'Preview',
   'forward.preview.meta': 'chars: {chars} · entities: {entities}',
   'forward.preview.meta.split': 'chars: {chars} · ~{parts} messages',

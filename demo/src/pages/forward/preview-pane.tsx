@@ -22,6 +22,8 @@ interface PreviewMeta {
   /** Entities of the whole message: Telegram drops the excess silently */
   entities: number;
   entityRisk: boolean;
+  /** Past the cap: the message will lose entities on send */
+  entityOver: boolean;
 }
 
 /**
@@ -45,6 +47,7 @@ export const PreviewPane = ({
     const textLength = preview.rendered.text.length;
     const entities = preview.rendered.entities.length;
     const entityRisk = entities >= MESSAGE_ENTITY_WARN_LIMIT;
+    const entityOver = entities > MESSAGE_ENTITY_LIMIT;
     if (textLength > DEFAULT_MAX_LENGTH) {
       const parts = Math.ceil(textLength / DEFAULT_MAX_LENGTH);
       return {
@@ -53,6 +56,7 @@ export const PreviewPane = ({
         parts,
         entities,
         entityRisk,
+        entityOver,
       };
     }
     return {
@@ -61,6 +65,7 @@ export const PreviewPane = ({
       parts: 1,
       entities,
       entityRisk,
+      entityOver,
     };
   }, [preview, t]);
 
@@ -99,6 +104,7 @@ export const PreviewPane = ({
         <p className="notice warning">
           {t(meta.over ? 'forward.entityCap.split' : 'forward.entityCap', {
             entities: meta.entities,
+            level: t(meta.entityOver ? 'forward.entityCap.level.over' : 'forward.entityCap.level.near'),
             max: MESSAGE_ENTITY_LIMIT,
             parts: meta.parts,
           })}
