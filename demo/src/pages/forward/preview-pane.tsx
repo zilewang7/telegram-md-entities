@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
+import type { ChangeEvent } from 'react';
 import { DEFAULT_MAX_LENGTH } from 'telegram-md-entities';
 import { match } from 'ts-pattern';
 import { useI18n } from '../../i18n/i18n-context';
@@ -7,6 +8,9 @@ import type { ForwardPreview } from './use-forward-preview';
 
 interface PreviewPaneProps {
   preview: ForwardPreview;
+  /** Every quote in the message is rendered as a collapsible quote */
+  collapsedQuotes: boolean;
+  onCollapsedQuotesChange: (value: boolean) => void;
 }
 
 interface PreviewMeta {
@@ -20,8 +24,16 @@ interface PreviewMeta {
  * line counts the rendered text (what Telegram actually receives), not the
  * markdown source, so a long link URL does not inflate it.
  */
-export const PreviewPane = ({ preview }: PreviewPaneProps) => {
+export const PreviewPane = ({
+  preview,
+  collapsedQuotes,
+  onCollapsedQuotesChange,
+}: PreviewPaneProps) => {
   const { t } = useI18n();
+  const handleQuoteToggle = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => onCollapsedQuotesChange(event.target.checked),
+    [onCollapsedQuotesChange],
+  );
 
   const meta = useMemo<PreviewMeta | null>(() => {
     if (preview.kind !== 'ready') return null;
@@ -63,6 +75,13 @@ export const PreviewPane = ({ preview }: PreviewPaneProps) => {
           .with({ kind: 'ready' }, ({ previewHtml }) => <PreviewBubble html={previewHtml} />)
           .exhaustive()}
       </div>
+      {preview.kind === 'ready' && preview.hasQuote && (
+        <label className="fw-quote-toggle">
+          <input type="checkbox" checked={collapsedQuotes} onChange={handleQuoteToggle} />
+          <span className="fw-quote-toggle-label">{t('forward.quote.label')}</span>
+          <span className="hint">{t('forward.quote.hint')}</span>
+        </label>
+      )}
       {meta !== null && meta.over && (
         <p className="notice info">
           {t('forward.splitHint', { max: DEFAULT_MAX_LENGTH, parts: meta.parts })}

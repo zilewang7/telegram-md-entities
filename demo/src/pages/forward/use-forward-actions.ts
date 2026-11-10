@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { match } from 'ts-pattern';
-import { markdownToRendered, renderedToClipboardPayload } from '../../core/entity-convert';
+import { markdownToRendered, renderedToClipboardPayload, withQuoteStyle } from '../../core/entity-convert';
 import { renderedToIosMarkdown, renderedToTelegramMarkdown } from '../../core/telegram-markdown';
 import type { ChannelPlan, MarkdownDialect, RenderedMarkdown } from '../../core/types';
 import { useI18n } from '../../i18n/i18n-context';
@@ -29,6 +29,8 @@ interface ForwardActionsOptions {
   markdown: string;
   plan: ChannelPlan;
   copy: CopyActions;
+  /** Every quote in the message becomes collapsible */
+  collapsedQuotes: boolean;
 }
 
 /** The three copy buttons, wired to the current markdown and the platform plan */
@@ -36,6 +38,7 @@ export const useForwardActions = ({
   markdown,
   plan,
   copy,
+  collapsedQuotes,
 }: ForwardActionsOptions): readonly ChannelAction[] => {
   const { t } = useI18n();
   const { copyRich, copyPlainText, reportFailure } = copy;
@@ -51,9 +54,9 @@ export const useForwardActions = ({
       reportFailure(t('forward.convert.richFailed'));
       return;
     }
-    const payload = renderedToClipboardPayload(rendered, plan.target);
+    const payload = renderedToClipboardPayload(withQuoteStyle(rendered, collapsedQuotes), plan.target);
     copyRich(payload.html, payload.plainText);
-  }, [markdown, plan.target, copyRich, reportFailure, t]);
+  }, [markdown, plan.target, collapsedQuotes, copyRich, reportFailure, t]);
 
   const handleCopyMarkdown = useCallback(() => {
     const rendered = renderOrNull(markdown);

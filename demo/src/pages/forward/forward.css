@@ -203,3 +203,25 @@
   color: var(--warning);
   font-weight: 600;
 }
+
+/* Quote-style switch under the preview: only shown when the message has quotes */
+.fw-quote-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.fw-quote-toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.fw-quote-toggle-label {
+  font-weight: 600;
+}
