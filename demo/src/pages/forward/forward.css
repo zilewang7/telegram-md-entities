@@ -204,6 +204,48 @@
   font-weight: 600;
 }
 
+/* ---- collapsible quotes in the preview ---- */
+
+/*
+ * The Telegram clients keep three lines of a collapsed quote; the clip height
+ * and the "does it overflow at all" check live in usePreviewQuotes, so the CSS
+ * here only clips the wrapped content and styles the chevron states.
+ */
+.fw-quote-clip {
+  overflow: hidden;
+}
+
+/* Three lines or fewer: the quote is shown as is, without the chevron */
+.fw-bubble .tg-message blockquote.tg-expandable.is-short::after {
+  display: none;
+}
+
+/* Expanded: the chevron points back up so the quote can be folded again */
+.fw-bubble .tg-message blockquote.tg-expandable.is-expanded::after {
+  transform: rotate(225deg);
+}
+
+/* Transparent hit target over the chevron; the chevron itself comes from the
+ * preview stylesheet, which is why this button carries no icon of its own */
+.fw-quote-more {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.fw-quote-more:focus-visible {
+  outline: 2px solid #3390ec;
+  outline-offset: -2px;
+}
+
 /* Quote-style switch under the preview: only shown when the message has quotes */
 .fw-quote-toggle {
   display: flex;

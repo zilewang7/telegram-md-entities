@@ -87,7 +87,13 @@ export const PreviewPane = ({
           {t('forward.splitHint', { max: DEFAULT_MAX_LENGTH, parts: meta.parts })}
         </p>
       )}
-      <p className="hint">{t('forward.preview.note')}</p>
+      <p className="hint">
+        {t(
+          collapsedQuotes && preview.kind === 'ready' && preview.hasQuote
+            ? 'forward.preview.note.collapsed'
+            : 'forward.preview.note',
+        )}
+      </p>
     </section>
   );
 };

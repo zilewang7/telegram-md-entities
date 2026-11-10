@@ -38,7 +38,7 @@ export const commonZh = {
   'platform.web': '网页版',
 
   'channel.note.tdesktop':
-    '桌面版支持富文本粘贴：复制后到输入框粘贴即可；代码块语言会丢失，折叠引用会退化为普通引用。',
+    '桌面版支持富文本粘贴：复制后到输入框粘贴即可；代码块语言会丢失，折叠引用会按普通引用导入，粘贴后可在输入框里手动切换成折叠。',
   'channel.note.android':
     'Android 支持富文本粘贴：行内代码会变成普通文字，多行代码块已按 Android 的换行规则处理。',
   'channel.note.ios': 'iOS 客户端在粘贴 Markdown 时会自动转成格式；剧透会退化为普通文字。',
@@ -94,7 +94,7 @@ export const commonEn: Record<keyof typeof commonZh, string> = {
   'platform.web': 'Web',
 
   'channel.note.tdesktop':
-    'Desktop supports rich-text paste: copy, then paste into the input box. The code-block language is dropped and collapsed quotes degrade to normal quotes.',
+    'Desktop supports rich-text paste: copy, then paste into the input box. The code-block language is dropped and collapsed quotes arrive as normal quotes — switch the quote style in the input box afterwards.',
   'channel.note.android':
     'Android supports rich-text paste: inline code becomes plain text, and multi-line code blocks already follow Android’s line-break rules.',
   'channel.note.ios':

@@ -30,6 +30,8 @@ export const forwardZh = {
   'forward.preview.empty': '输入 Markdown 后，这里会显示 Telegram 风格的预览。',
   'forward.preview.failed': '这段 Markdown 无法渲染，请检查内容。',
   'forward.preview.note': '按 Telegram 客户端的样式渲染，仅供参考。',
+  'forward.preview.note.collapsed':
+    '按 Telegram 客户端的样式渲染：可折叠引用折到 3 行，点右下角箭头展开；引用不超过 3 行时没有箭头。',
   'forward.copy.title': '复制到 Telegram',
   'forward.copy.hint': '复制后到 Telegram 输入框粘贴',
   'forward.copy.rich': '复制富文本',
@@ -53,7 +55,10 @@ export const forwardZh = {
   'forward.entities.title': 'text + entities',
   'forward.entities.summary': '{entities} 个实体 · {chars} 字符',
   'forward.quote.label': '折叠引用',
-  'forward.quote.hint': '把所有引用统一成可折叠引用；Desktop 客户端不支持折叠，粘贴时会变回普通引用。',
+  'forward.quote.hint':
+    '把所有引用统一成可折叠引用。Desktop 粘贴时会按普通引用导入，粘贴后可在输入框里手动把引用切换成折叠样式。',
+  'forward.quote.expand': '展开引用',
+  'forward.quote.collapse': '收起引用',
   'forward.channel.title': '当前通道',
   'forward.syntax.label': '支持的写法',
   'forward.syntax.bold': '粗体',
@@ -96,6 +101,8 @@ export const forwardEn: Record<keyof typeof forwardZh, string> = {
   'forward.preview.empty': 'Type Markdown above and a Telegram-style preview appears here.',
   'forward.preview.failed': 'This Markdown cannot be rendered. Check the content.',
   'forward.preview.note': 'Rendered with Telegram client styling, for reference only.',
+  'forward.preview.note.collapsed':
+    'Rendered like a Telegram client: a collapsible quote keeps three lines — click the chevron to expand. Quotes of three lines or fewer show no chevron.',
   'forward.copy.title': 'Copy to Telegram',
   'forward.copy.hint': 'Then paste into any Telegram chat',
   'forward.copy.rich': 'Copy rich text',
@@ -119,7 +126,10 @@ export const forwardEn: Record<keyof typeof forwardZh, string> = {
   'forward.entities.title': 'text + entities',
   'forward.entities.summary': 'entities: {entities} · chars: {chars}',
   'forward.quote.label': 'Collapsible quotes',
-  'forward.quote.hint': 'Makes every quote collapsible; Desktop has no collapsible quotes, so they paste as normal ones.',
+  'forward.quote.hint':
+    'Makes every quote collapsible. Desktop imports them as normal quotes on paste — switch the quote style in the input box afterwards.',
+  'forward.quote.expand': 'Expand quote',
+  'forward.quote.collapse': 'Collapse quote',
   'forward.channel.title': 'Current channel',
   'forward.syntax.label': 'Supported syntax',
   'forward.syntax.bold': 'bold',

@@ -19,7 +19,7 @@ export const aboutZh = {
   'about.row.tdesktop.client': 'Telegram Desktop',
   'about.row.tdesktop.forward': '富文本 HTML',
   'about.row.tdesktop.reverse': 'HTML',
-  'about.row.tdesktop.note': '代码块的语言名会丢；折叠引用退化为普通引用。',
+  'about.row.tdesktop.note': '代码块的语言名会丢；折叠引用会按普通引用导入（粘贴后可在输入框手动切换）。',
   'about.row.android.client': 'Android',
   'about.row.android.forward': '富文本 HTML',
   'about.row.android.reverse': 'HTML',
@@ -94,7 +94,8 @@ export const aboutZh = {
   'about.limits.macos': 'macOS 原生 app 两个方向都不可用：它既不读也不写 HTML。',
   'about.limits.tdesktop': 'Telegram Desktop 会丢掉代码块的语言名（```ts 里的 ts）。',
   'about.limits.android': 'Android 不认行内代码，会把它变成普通文字。',
-  'about.limits.quote': '折叠引用在 HTML 通道里会退化成普通引用：折叠状态没有写进 HTML。',
+  'about.limits.quote':
+    '折叠引用在 Desktop 的 HTML 通道里会退化成普通引用：折叠状态没有写进 HTML。粘贴后可以在输入框里手动把引用切换成折叠样式。',
   'about.limits.table': '表格用等宽字符对齐；含中日韩宽字符时会改用列表形式，因为各客户端等宽字体的宽度并不一致。',
 } as const;
 
@@ -115,7 +116,8 @@ export const aboutEn: Record<keyof typeof aboutZh, string> = {
   'about.row.tdesktop.client': 'Telegram Desktop',
   'about.row.tdesktop.forward': 'rich HTML',
   'about.row.tdesktop.reverse': 'HTML',
-  'about.row.tdesktop.note': 'Code-block language names are dropped; collapsed quotes become normal quotes.',
+  'about.row.tdesktop.note':
+    'Code-block language names are dropped; collapsed quotes arrive as normal quotes (switch the quote style in the input box after pasting).',
   'about.row.android.client': 'Android',
   'about.row.android.forward': 'rich HTML',
   'about.row.android.reverse': 'HTML',
@@ -197,7 +199,7 @@ export const aboutEn: Record<keyof typeof aboutZh, string> = {
   'about.limits.tdesktop': 'Telegram Desktop drops the code-block language (the ts in ```ts).',
   'about.limits.android': 'Android does not recognise inline code and turns it into plain text.',
   'about.limits.quote':
-    'Collapsed quotes degrade to normal quotes on the HTML channel: the collapsed state is not written into the HTML.',
+    'Collapsed quotes arrive as normal quotes on Desktop’s HTML channel: the collapsed state is not written into the HTML. Switch the quote style in the input box after pasting.',
   'about.limits.table':
     'Tables are aligned with monospace characters; tables containing wide CJK characters switch to a list form, because monospace widths differ between clients.',
 };
