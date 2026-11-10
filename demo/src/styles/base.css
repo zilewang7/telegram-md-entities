@@ -141,12 +141,12 @@ code {
 }
 
 .button.primary {
-  background: var(--accent);
+  background: var(--accent-solid);
   color: #fff;
 }
 
 .button.primary:hover:not(:disabled) {
-  background: var(--accent-strong);
+  background: var(--accent-solid-strong);
 }
 
 .button.secondary {
