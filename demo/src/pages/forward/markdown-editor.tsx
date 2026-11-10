@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from 'react';
 import type { ChangeEvent } from 'react';
-import { DEFAULT_MAX_LENGTH } from 'telegram-md-entities';
 import { useI18n } from '../../i18n/i18n-context';
 import type { MessageKey } from '../../i18n/messages';
 
@@ -38,10 +37,9 @@ export const MarkdownEditor = ({ value, onChange, onLoadSample, onClear }: Markd
     (event: ChangeEvent<HTMLTextAreaElement>) => onChange(event.target.value),
     [onChange]
   );
-  const overLimit = value.length > DEFAULT_MAX_LENGTH;
-  const messageParts = Math.ceil(value.length / DEFAULT_MAX_LENGTH);
+  // The editor shows the source length; the preview shows the sent text length
   const counter = useMemo(
-    () => t('forward.counter', { length: value.length, max: DEFAULT_MAX_LENGTH }),
+    () => t('forward.counter', { length: value.length }),
     [t, value.length]
   );
   const chips = useMemo(
@@ -59,7 +57,7 @@ export const MarkdownEditor = ({ value, onChange, onLoadSample, onClear }: Markd
         <label className="field-label" htmlFor="fw-markdown-input">
           {t('forward.markdown.label')}
         </label>
-        <span className={overLimit ? 'length-counter over' : 'length-counter'}>{counter}</span>
+        <span className="length-counter">{counter}</span>
       </div>
       <textarea
         id="fw-markdown-input"
@@ -70,11 +68,6 @@ export const MarkdownEditor = ({ value, onChange, onLoadSample, onClear }: Markd
         placeholder={t('forward.placeholder')}
         onChange={handleChange}
       />
-      {overLimit && (
-        <p className="notice info">
-          {t('forward.splitHint', { max: DEFAULT_MAX_LENGTH, parts: messageParts })}
-        </p>
-      )}
       <div className="fw-editor-foot">
         <div className="fw-editor-buttons">
           <button type="button" className="button ghost" onClick={onLoadSample}>
