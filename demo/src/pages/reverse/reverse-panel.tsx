@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { match } from 'ts-pattern';
 import type { ChannelPlan, ClientPlatform } from '../../core/types';
-import { reverseNoteOf } from '../../lib/platform';
+import { useI18n } from '../../i18n/i18n-context';
+import { reverseNoteKeyOf } from '../../i18n/messages';
 import { MarkdownResult } from './markdown-result';
 import { ParsedSummary, parsedSummaryOf } from './parsed-summary';
 import { PasteZone } from './paste-zone';
@@ -21,6 +22,7 @@ interface ReversePanelProps {
 
 /** Direction 2: a Telegram message pasted from the clipboard -> markdown */
 export const ReversePanel = ({ platform, readSupported }: ReversePanelProps) => {
+  const { t } = useI18n();
   const {
     state,
     markdown,
@@ -31,22 +33,24 @@ export const ReversePanel = ({ platform, readSupported }: ReversePanelProps) => 
     handleMarkdownChange,
   } = usePasteActions(readSupported);
   const { status, copy } = useCopyMarkdown(markdown);
-  const platformNote = useMemo(() => reverseNoteOf(platform), [platform]);
+  const platformNote = useMemo(() => t(reverseNoteKeyOf(platform)), [platform, t]);
   const summary = useMemo(
-    () => (state.kind === 'rich' ? parsedSummaryOf(state.conversion) : null),
-    [state],
+    () => (state.kind === 'rich' ? parsedSummaryOf(state.conversion, t) : null),
+    [state, t],
   );
 
   return (
     <div className="rv-panel">
       <section className="card rv-step">
-        <StepHeading index={1} title="粘贴消息" hint="从 Telegram 复制一条带格式的消息" />
+        <StepHeading
+          index={1}
+          title={t('reverse.paste.title')}
+          hint={t('reverse.paste.subtitle')}
+        />
         <PasteZone onPaste={handlePaste} onReadClipboard={readFromClipboard} reading={reading} />
         {platformNote !== '' && <p className="hint rv-platform-note">{platformNote}</p>}
         {match(state)
-          .with({ kind: 'idle' }, () => (
-            <p className="notice info">在 Telegram 里复制一条带格式的消息，再粘贴到这里。</p>
-          ))
+          .with({ kind: 'idle' }, () => <p className="notice info">{t('reverse.empty')}</p>)
           .with({ kind: 'error' }, ({ message }) => (
             <p className="error-text" role="alert">
               {message}
@@ -59,7 +63,11 @@ export const ReversePanel = ({ platform, readSupported }: ReversePanelProps) => 
 
       {summary !== null && (
         <section className="card rv-step">
-          <StepHeading index={2} title="解析结果" hint="看看识别到了哪些格式" />
+          <StepHeading
+            index={2}
+            title={t('reverse.parsed.title')}
+            hint={t('reverse.parsed.subtitle')}
+          />
           <ParsedSummary summary={summary} />
         </section>
       )}

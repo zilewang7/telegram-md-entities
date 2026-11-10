@@ -1,9 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
+import { LocaleSwitch } from './components/locale-switch';
 import { PlatformPicker } from './components/platform-picker';
 import { TabSwitch } from './components/tab-switch';
 import type { PanelId } from './components/tab-switch';
 import { channelPlanOf } from './core/platform-channel';
 import type { ClientPlatform } from './core/types';
+import { useI18n } from './i18n/i18n-context';
 import { detectClipboardCapabilities, detectClientPlatform } from './lib/platform';
 import { AboutPanel } from './pages/about/about-panel';
 import { ForwardPanel } from './pages/forward/forward-panel';
@@ -14,6 +16,7 @@ const NPM_URL = 'https://www.npmjs.com/package/telegram-md-entities';
 const HOME_URL = 'https://zile.wang';
 
 export const App = () => {
+  const { t } = useI18n();
   const [panel, setPanel] = useState<PanelId>('forward');
   const [platform, setPlatform] = useState<ClientPlatform>(detectClientPlatform);
   const capabilities = useMemo(detectClipboardCapabilities, []);
@@ -28,21 +31,21 @@ export const App = () => {
   return (
     <div className="page">
       <header className="app-header">
-        <span className="app-kicker">Telegram · Markdown</span>
-        <h1 className="app-title">Telegram 富文本剪贴板</h1>
-        <p className="app-subtitle">
-          把 Markdown 变成能直接粘进 Telegram 输入框的富文本，或者把 Telegram 消息还原成 Markdown。
-          全部在你的浏览器里完成，内容不会上传。
-        </p>
+        <div className="app-header-top">
+          <span className="app-kicker">{t('app.kicker')}</span>
+          <LocaleSwitch />
+        </div>
+        <h1 className="app-title">{t('app.title')}</h1>
+        <p className="app-subtitle">{t('app.subtitle')}</p>
         <div className="app-links">
           <a href={GITHUB_URL} target="_blank" rel="noreferrer">
-            GitHub
+            {t('app.link.github')}
           </a>
           <a href={NPM_URL} target="_blank" rel="noreferrer">
-            npm
+            {t('app.link.npm')}
           </a>
           <a href={HOME_URL} target="_blank" rel="noreferrer">
-            zile.wang
+            {t('app.link.site')}
           </a>
         </div>
       </header>
@@ -63,8 +66,8 @@ export const App = () => {
       </main>
 
       <footer className="app-footer">
-        <span>由 telegram-md-entities 驱动 · 内容只在本地处理，不上传服务器</span>
-        <span>iOS 首次粘贴可能弹系统授权提示；Android 13+ 会显示剪贴板预览，属系统行为。</span>
+        <span>{t('app.footer.drivenBy')}</span>
+        <span>{t('app.footer.tips')}</span>
       </footer>
     </div>
   );

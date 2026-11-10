@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useI18n } from '../../i18n/i18n-context';
 import { copyText } from '../../lib/clipboard';
 import type { CopyStatus } from './reverse-types';
-
-const COPY_SUCCESS_MESSAGE = '已复制 Markdown，去粘贴吧';
-const COPY_FAILED_MESSAGE = '复制失败，请手动全选文本复制';
 
 export interface CopyMarkdown {
   status: CopyStatus | null;
@@ -12,6 +10,7 @@ export interface CopyMarkdown {
 
 /** Copy the current markdown; the outcome line clears whenever the text changes */
 export const useCopyMarkdown = (markdown: string): CopyMarkdown => {
+  const { t } = useI18n();
   const [status, setStatus] = useState<CopyStatus | null>(null);
 
   useEffect(() => {
@@ -23,11 +22,11 @@ export const useCopyMarkdown = (markdown: string): CopyMarkdown => {
     void copyText(markdown).then((ok) => {
       setStatus(
         ok
-          ? { tone: 'success', message: COPY_SUCCESS_MESSAGE }
-          : { tone: 'error', message: COPY_FAILED_MESSAGE },
+          ? { tone: 'success', message: t('reverse.output.copied') }
+          : { tone: 'error', message: t('reverse.output.copyFailed') },
       );
     });
-  }, [markdown]);
+  }, [markdown, t]);
 
   return { status, copy };
 };

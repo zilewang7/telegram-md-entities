@@ -1,11 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { ChangeEvent, ClipboardEvent } from 'react';
 import { clipboardHtmlToMarkdown } from '../../core/entity-convert';
+import { useI18n } from '../../i18n/i18n-context';
 import type { PasteState } from './reverse-types';
-
-const EMPTY_MESSAGE = '剪贴板里没有可识别的文本内容。';
-const READ_FAILED_MESSAGE = '读取剪贴板失败，请改用粘贴。';
-const PARSE_FAILED_MESSAGE = '富文本解析失败，请尝试用纯文本粘贴。';
 
 export interface PasteActions {
   state: PasteState;
@@ -25,20 +22,24 @@ export interface PasteActions {
  * starts as the parsed output and stays editable afterwards.
  */
 export const usePasteActions = (readSupported: boolean): PasteActions => {
+  const { t } = useI18n();
   const [state, setState] = useState<PasteState>({ kind: 'idle' });
   const [markdown, setMarkdown] = useState('');
   const [reading, setReading] = useState(false);
 
-  const applyRich = useCallback((html: string) => {
-    try {
-      const conversion = clipboardHtmlToMarkdown(html);
-      setState({ kind: 'rich', conversion });
-      setMarkdown(conversion.markdown);
-    } catch {
-      setState({ kind: 'error', message: PARSE_FAILED_MESSAGE });
-      setMarkdown('');
-    }
-  }, []);
+  const applyRich = useCallback(
+    (html: string) => {
+      try {
+        const conversion = clipboardHtmlToMarkdown(html);
+        setState({ kind: 'rich', conversion });
+        setMarkdown(conversion.markdown);
+      } catch {
+        setState({ kind: 'error', message: t('reverse.error.parseFailed') });
+        setMarkdown('');
+      }
+    },
+    [t],
+  );
 
   const applyPlain = useCallback((text: string) => {
     setState({ kind: 'plain', text });
@@ -46,9 +47,9 @@ export const usePasteActions = (readSupported: boolean): PasteActions => {
   }, []);
 
   const applyEmpty = useCallback(() => {
-    setState({ kind: 'error', message: EMPTY_MESSAGE });
+    setState({ kind: 'error', message: t('reverse.error.empty') });
     setMarkdown('');
-  }, []);
+  }, [t]);
 
   const handlePaste = useCallback(
     (event: ClipboardEvent<HTMLTextAreaElement>) => {
@@ -96,14 +97,14 @@ export const usePasteActions = (readSupported: boolean): PasteActions => {
           }
           applyEmpty();
         } catch {
-          setState({ kind: 'error', message: READ_FAILED_MESSAGE });
+          setState({ kind: 'error', message: t('reverse.error.readFailed') });
           setMarkdown('');
         } finally {
           setReading(false);
         }
       })();
     };
-  }, [readSupported, applyRich, applyPlain, applyEmpty]);
+  }, [readSupported, applyRich, applyPlain, applyEmpty, t]);
 
   const handleUsePlainAsMarkdown = useCallback(() => {
     if (state.kind !== 'plain') return;

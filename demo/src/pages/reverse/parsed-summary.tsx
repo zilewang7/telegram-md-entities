@@ -1,21 +1,32 @@
+import type { EntityType } from 'telegram-md-entities';
 import type { ClipboardConversion } from '../../core/types';
+import { useI18n } from '../../i18n/i18n-context';
+import type { Locale, MessageKey, MessageVars } from '../../i18n/messages';
 
-const ENTITY_LABELS: Readonly<Record<string, string>> = {
-  bold: '粗体',
-  italic: '斜体',
-  underline: '下划线',
-  strikethrough: '删除线',
-  spoiler: '剧透',
-  code: '行内代码',
-  pre: '代码块',
-  blockquote: '引用',
-  expandable_blockquote: '折叠引用',
-  text_link: '链接',
+type Translate = (key: MessageKey, vars?: MessageVars) => string;
+
+const ENTITY_LABEL_KEYS: Readonly<Record<EntityType, MessageKey>> = {
+  bold: 'reverse.entity.bold',
+  italic: 'reverse.entity.italic',
+  underline: 'reverse.entity.underline',
+  strikethrough: 'reverse.entity.strikethrough',
+  spoiler: 'reverse.entity.spoiler',
+  code: 'reverse.entity.code',
+  pre: 'reverse.entity.pre',
+  blockquote: 'reverse.entity.blockquote',
+  expandable_blockquote: 'reverse.entity.expandable_blockquote',
+  text_link: 'reverse.entity.text_link',
 };
 
-const SOURCE_LABELS: Readonly<Record<ClipboardConversion['source'], string>> = {
-  'webk-json': 'WebK JSON（精确实体）',
-  html: 'HTML（按标签解析）',
+const SOURCE_LABEL_KEYS: Readonly<Record<ClipboardConversion['source'], MessageKey>> = {
+  'webk-json': 'reverse.source.webk-json',
+  html: 'reverse.source.html',
+};
+
+/** Tag lists follow the locale's punctuation (ideographic comma vs ASCII comma) */
+const TAG_SEPARATORS: Readonly<Record<Locale, string>> = {
+  zh: '\u3001',
+  en: ', ',
 };
 
 export interface ParsedSummaryView {
@@ -26,16 +37,19 @@ export interface ParsedSummaryView {
 }
 
 /** Turn a reverse conversion into the short "what was parsed" summary */
-export const parsedSummaryOf = (conversion: ClipboardConversion): ParsedSummaryView => {
-  const counts = new Map<string, number>();
+export const parsedSummaryOf = (
+  conversion: ClipboardConversion,
+  t: Translate,
+): ParsedSummaryView => {
+  const counts = new Map<EntityType, number>();
   for (const entity of conversion.entities) {
     counts.set(entity.type, (counts.get(entity.type) ?? 0) + 1);
   }
   const entityChips = [...counts.entries()].map(
-    ([type, count]) => `${ENTITY_LABELS[type] ?? type} ×${count}`,
+    ([type, count]) => `${t(ENTITY_LABEL_KEYS[type])} ×${count}`,
   );
   return {
-    sourceLabel: SOURCE_LABELS[conversion.source],
+    sourceLabel: t(SOURCE_LABEL_KEYS[conversion.source]),
     characterCount: conversion.text.length,
     entityChips,
     ignoredTags: conversion.ignoredTags,
@@ -47,28 +61,35 @@ interface ParsedSummaryProps {
 }
 
 /** What the parser recognised, and which tags it had to drop */
-export const ParsedSummary = ({ summary }: ParsedSummaryProps) => (
-  <div className="rv-summary">
-    <p className="rv-summary-meta">
-      <span>来源：{summary.sourceLabel}</span>
-      <span className="rv-dot" aria-hidden="true">
-        ·
-      </span>
-      <span>{summary.characterCount} 字符</span>
-    </p>
-    {summary.entityChips.length > 0 ? (
-      <div className="chip-row">
-        {summary.entityChips.map((chip) => (
-          <span className="chip" key={chip}>
-            {chip}
-          </span>
-        ))}
-      </div>
-    ) : (
-      <p className="hint">没有识别到格式，内容会按纯文字输出。</p>
-    )}
-    {summary.ignoredTags.length > 0 && (
-      <p className="hint">已忽略的标签：{summary.ignoredTags.join('、')}</p>
-    )}
-  </div>
-);
+export const ParsedSummary = ({ summary }: ParsedSummaryProps) => {
+  const { t, locale } = useI18n();
+
+  return (
+    <div className="rv-summary">
+      <p className="rv-summary-meta">
+        <span>
+          {t('reverse.parsed.source', {
+            source: summary.sourceLabel,
+            chars: summary.characterCount,
+          })}
+        </span>
+      </p>
+      {summary.entityChips.length > 0 ? (
+        <div className="chip-row">
+          {summary.entityChips.map((chip) => (
+            <span className="chip" key={chip}>
+              {chip}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="hint">{t('reverse.parsed.none')}</p>
+      )}
+      {summary.ignoredTags.length > 0 && (
+        <p className="hint">
+          {t('reverse.parsed.ignored', { tags: summary.ignoredTags.join(TAG_SEPARATORS[locale]) })}
+        </p>
+      )}
+    </div>
+  );
+};

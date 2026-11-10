@@ -3,13 +3,17 @@ import { match } from 'ts-pattern';
 import { markdownToRendered, renderedToClipboardPayload } from '../../core/entity-convert';
 import { renderedToIosMarkdown, renderedToTelegramMarkdown } from '../../core/telegram-markdown';
 import type { ChannelPlan, MarkdownDialect, RenderedMarkdown } from '../../core/types';
+import { useI18n } from '../../i18n/i18n-context';
+import type { I18nValue } from '../../i18n/i18n-context';
 import type { ChannelAction } from './channel-actions';
 import type { CopyActions } from './use-copy-actions';
 
-const dialectLabelOf = (dialect: MarkdownDialect): string =>
+type Translate = I18nValue['t'];
+
+const dialectLabelOf = (dialect: MarkdownDialect, t: Translate): string =>
   match(dialect)
-    .with('ios', () => 'iOS 方言')
-    .with('telegram', () => 'Telegram 方言')
+    .with('ios', () => t('forward.dialect.ios'))
+    .with('telegram', () => t('forward.dialect.telegram'))
     .exhaustive();
 
 /** Convert once per action; a throw means this markdown cannot be converted */
@@ -33,69 +37,82 @@ export const useForwardActions = ({
   plan,
   copy,
 }: ForwardActionsOptions): readonly ChannelAction[] => {
+  const { t } = useI18n();
   const { copyRich, copyPlainText, reportFailure } = copy;
   const hasContent = markdown.trim() !== '';
-  const dialectLabel = dialectLabelOf(plan.markdownDialect);
+  const dialectLabel = useMemo(
+    () => dialectLabelOf(plan.markdownDialect, t),
+    [plan.markdownDialect, t]
+  );
 
   const handleCopyRich = useCallback(() => {
     const rendered = renderOrNull(markdown);
     if (rendered === null) {
-      reportFailure('转换失败：这段 Markdown 无法生成富文本。');
+      reportFailure(t('forward.convert.richFailed'));
       return;
     }
     const payload = renderedToClipboardPayload(rendered, plan.target);
     copyRich(payload.html, payload.plainText);
-  }, [markdown, plan.target, copyRich, reportFailure]);
+  }, [markdown, plan.target, copyRich, reportFailure, t]);
 
   const handleCopyMarkdown = useCallback(() => {
     const rendered = renderOrNull(markdown);
     if (rendered === null) {
-      reportFailure('转换失败：这段 Markdown 无法生成 Markdown 文本。');
+      reportFailure(t('forward.convert.markdownFailed'));
       return;
     }
     const text =
       plan.markdownDialect === 'ios'
         ? renderedToIosMarkdown(rendered)
         : renderedToTelegramMarkdown(rendered);
-    copyPlainText(text, `已复制 Markdown 文本（${dialectLabel}）`);
-  }, [markdown, plan.markdownDialect, dialectLabel, copyPlainText, reportFailure]);
+    // The success line carries the dialect, so the caller composes the full message
+    copyPlainText(text, t('forward.copy.markdown.done', { dialect: dialectLabel }));
+  }, [markdown, plan.markdownDialect, dialectLabel, copyPlainText, reportFailure, t]);
 
   const handleCopyPlain = useCallback(() => {
     const rendered = renderOrNull(markdown);
     if (rendered === null) {
-      reportFailure('转换失败：这段 Markdown 无法生成纯文本。');
+      reportFailure(t('forward.convert.plainFailed'));
       return;
     }
-    copyPlainText(rendered.text, '已复制纯文本');
-  }, [markdown, copyPlainText, reportFailure]);
+    copyPlainText(rendered.text, t('forward.copy.plain.done'));
+  }, [markdown, copyPlainText, reportFailure, t]);
 
   return useMemo<readonly ChannelAction[]>(
     () => [
       {
         id: 'rich-html',
-        label: '复制富文本',
-        hint: '到 Telegram 输入框粘贴，格式会保留',
+        label: t('forward.copy.rich'),
+        hint: t('forward.copy.rich.hint'),
         recommended: plan.recommended === 'rich-html',
         disabled: !hasContent,
         onSelect: handleCopyRich,
       },
       {
         id: 'markdown',
-        label: '复制 Markdown 文本',
-        hint: `粘贴后由客户端按 ${dialectLabel} 转换`,
+        label: t('forward.copy.markdown'),
+        hint: t('forward.copy.markdown.hint', { dialect: dialectLabel }),
         recommended: plan.recommended === 'markdown',
         disabled: !hasContent,
         onSelect: handleCopyMarkdown,
       },
       {
         id: 'plain',
-        label: '复制纯文本',
-        hint: '不带格式，最保险的兜底',
+        label: t('forward.copy.plain'),
+        hint: t('forward.copy.plain.hint'),
         recommended: plan.recommended === 'plain',
         disabled: !hasContent,
         onSelect: handleCopyPlain,
       },
     ],
-    [hasContent, plan.recommended, dialectLabel, handleCopyRich, handleCopyMarkdown, handleCopyPlain]
+    [
+      hasContent,
+      plan.recommended,
+      dialectLabel,
+      handleCopyRich,
+      handleCopyMarkdown,
+      handleCopyPlain,
+      t,
+    ]
   );
 };

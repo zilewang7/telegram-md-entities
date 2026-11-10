@@ -1,22 +1,28 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { ChangeEvent } from 'react';
 import { DEFAULT_MAX_LENGTH } from 'telegram-md-entities';
-import { LengthCounter } from '../../components/length-counter';
+import { useI18n } from '../../i18n/i18n-context';
+import type { MessageKey } from '../../i18n/messages';
+
+interface SyntaxChip {
+  /** The markdown delimiters stay literal; only the label between them translates */
+  prefix: string;
+  suffix: string;
+  labelKey: MessageKey;
+}
 
 /** Syntax the converter understands, shown as a legend under the editor */
-const SYNTAX_CHIPS: readonly string[] = [
-  '**粗体**',
-  '*斜体*',
-  '__下划线__',
-  '~~删除线~~',
-  '`行内代码`',
-  '[链接](url)',
-  '> 引用',
-  '```代码块```',
-  '||剧透||',
+const SYNTAX_CHIPS: readonly SyntaxChip[] = [
+  { prefix: '**', suffix: '**', labelKey: 'forward.syntax.bold' },
+  { prefix: '*', suffix: '*', labelKey: 'forward.syntax.italic' },
+  { prefix: '__', suffix: '__', labelKey: 'forward.syntax.underline' },
+  { prefix: '~~', suffix: '~~', labelKey: 'forward.syntax.strike' },
+  { prefix: '`', suffix: '`', labelKey: 'forward.syntax.code' },
+  { prefix: '[', suffix: '](url)', labelKey: 'forward.syntax.link' },
+  { prefix: '> ', suffix: '', labelKey: 'forward.syntax.quote' },
+  { prefix: '```', suffix: '```', labelKey: 'forward.syntax.codeblock' },
+  { prefix: '||', suffix: '||', labelKey: 'forward.syntax.spoiler' },
 ];
-
-const PLACEHOLDER = '在这里粘贴 Markdown：**粗体**、`行内代码`、> 引用、```代码块```、[链接](https://example.com)';
 
 interface MarkdownEditorProps {
   value: string;
@@ -27,20 +33,33 @@ interface MarkdownEditorProps {
 
 /** Left column: the markdown input, its length budget and a syntax legend */
 export const MarkdownEditor = ({ value, onChange, onLoadSample, onClear }: MarkdownEditorProps) => {
+  const { t } = useI18n();
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLTextAreaElement>) => onChange(event.target.value),
     [onChange]
   );
   const overLimit = value.length > DEFAULT_MAX_LENGTH;
   const messageParts = Math.ceil(value.length / DEFAULT_MAX_LENGTH);
+  const counter = useMemo(
+    () => t('forward.counter', { length: value.length, max: DEFAULT_MAX_LENGTH }),
+    [t, value.length]
+  );
+  const chips = useMemo(
+    () =>
+      SYNTAX_CHIPS.map((chip) => ({
+        key: chip.labelKey,
+        text: `${chip.prefix}${t(chip.labelKey)}${chip.suffix}`,
+      })),
+    [t]
+  );
 
   return (
     <section className="section">
       <div className="field-label-row fw-editor-head">
         <label className="field-label" htmlFor="fw-markdown-input">
-          Markdown
+          {t('forward.markdown.label')}
         </label>
-        <LengthCounter length={value.length} max={DEFAULT_MAX_LENGTH} />
+        <span className={overLimit ? 'length-counter over' : 'length-counter'}>{counter}</span>
       </div>
       <textarea
         id="fw-markdown-input"
@@ -48,27 +67,31 @@ export const MarkdownEditor = ({ value, onChange, onLoadSample, onClear }: Markd
         value={value}
         rows={13}
         spellCheck={false}
-        placeholder={PLACEHOLDER}
+        placeholder={t('forward.placeholder')}
         onChange={handleChange}
       />
       {overLimit && (
         <p className="notice warning">
-          超过 Telegram 单条上限 {DEFAULT_MAX_LENGTH} 字符（约 {messageParts} 条），发送时可能需要手动分条。
+          {t('forward.splitHint', { max: DEFAULT_MAX_LENGTH, parts: messageParts })}
         </p>
       )}
       <div className="fw-editor-foot">
         <div className="fw-editor-buttons">
           <button type="button" className="button ghost" onClick={onLoadSample}>
-            载入示例
+            {t('forward.sample')}
           </button>
           <button type="button" className="button ghost" onClick={onClear} disabled={value === ''}>
-            清空
+            {t('forward.clear')}
           </button>
         </div>
-        <div className="chip-row fw-syntax-chips">
-          {SYNTAX_CHIPS.map((chip) => (
-            <span className="chip" key={chip}>
-              {chip}
+        <div
+          className="chip-row fw-syntax-chips"
+          role="group"
+          aria-label={t('forward.syntax.label')}
+        >
+          {chips.map((chip) => (
+            <span className="chip" key={chip.key}>
+              {chip.text}
             </span>
           ))}
         </div>
