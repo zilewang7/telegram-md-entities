@@ -10,10 +10,10 @@ export interface DollarRun {
     length: number;
 }
 
-/** A source range [start, end) */
-export interface SourceSpan {
-    start: number;
-    end: number;
+/** A '$$…$$' formula: a '$$' run and the next one */
+export interface DisplayFormula {
+    opener: DollarRun;
+    closer: DollarRun;
 }
 
 const isAsciiPunctuation = (char: string | undefined): boolean =>
@@ -42,17 +42,16 @@ export const dollarRuns = (source: string, start: number, end: number): DollarRu
 };
 
 /**
- * The content of each '$$…$$' formula in source[start, end): every '$$'
- * run paired with the next one, in order. An unpaired last run opens
- * nothing.
+ * The '$$…$$' formulas in source[start, end): every '$$' run paired with
+ * the next one, in order. An unpaired last run opens nothing.
  */
-export const displayMathSpans = (source: string, start: number, end: number): SourceSpan[] => {
+export const displayFormulas = (source: string, start: number, end: number): DisplayFormula[] => {
     const doubles = dollarRuns(source, start, end).filter((run) => run.length === 2);
-    const spans: SourceSpan[] = [];
+    const formulas: DisplayFormula[] = [];
     for (let index = 0; index + 1 < doubles.length; index += 2) {
         const opener = doubles[index];
         const closer = doubles[index + 1];
-        if (opener && closer) spans.push({ start: opener.at + opener.length, end: closer.at });
+        if (opener && closer) formulas.push({ opener, closer });
     }
-    return spans;
+    return formulas;
 };

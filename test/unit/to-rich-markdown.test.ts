@@ -152,8 +152,23 @@ describe('toRichMarkdown: soft line breaks become hard ones', () => {
         expect(expectSameDisplay('行内 $$E=mc^2$$ 后文')).toBe('行内 $$E=mc^2$$ 后文');
     });
 
-    it('around a $$ formula inside a paragraph, only the outer line endings get the backslash', () => {
-        expect(expectSameDisplay('a\n$$\nx\n$$\nb')).toBe('a\\\n$$\nx\n$$\\\nb');
+    it('a $$ block on its own lines keeps the line endings around it too', () => {
+        for (const block of [
+            'a\n$$\nx\n$$\nb',
+            'a\n$$y$$\nb',
+            '> a\n> $$\n> x\n> $$\n> b',
+            'a \n$$\nx\n$$  \nb',
+        ]) {
+            expect(expectSameDisplay(block)).toBe(block);
+        }
+        // The closing line carries more text: only the opening side is a block edge
+        expect(expectSameDisplay('a\n$$\nx\n$$ tail\nb')).toBe('a\n$$\nx\n$$ tail\\\nb');
+    });
+
+    it('a $$ formula inside a line keeps the normal hard breaks', () => {
+        expect(expectSameDisplay('第一行 $x_1$\n第二行 $$y$$\n第三行')).toBe(
+            '第一行 $x_1$\\\n第二行 $$y$$\\\n第三行'
+        );
     });
 
     it('an unpaired $$ keeps the normal hard breaks', () => {
