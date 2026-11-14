@@ -20,18 +20,31 @@ export const escapeHtmlAttribute = (value: string): string =>
 
 const isLineStart = (text: string, index: number): boolean => index === 0 || text[index - 1] === '\n';
 
+const isHighSurrogate = (unit: number): boolean => unit >= 0xd800 && unit <= 0xdbff;
+const isLowSurrogate = (unit: number): boolean => unit >= 0xdc00 && unit <= 0xdfff;
+
+/** The HTML of the UTF-16 unit at index; a surrogate pair goes out whole at its high unit */
+const unitHtml = (text: string, index: number): string => {
+    const unit = text.charCodeAt(index);
+    if (isHighSurrogate(unit) && isLowSurrogate(text.charCodeAt(index + 1))) return text.slice(index, index + 2);
+    if (isLowSurrogate(unit) && isHighSurrogate(text.charCodeAt(index - 1))) return '';
+    const char = text[index] ?? '';
+    if (char === '\n') return '<br>';
+    if (char === ' ' && (isLineStart(text, index) || text[index - 1] === ' ')) return NO_BREAK_SPACE;
+    return TEXT_ESCAPES[char] ?? char;
+};
+
 /**
- * The HTML of every character of text that flows (a paragraph, a quote):
- * newlines become <br>; a space keeps its width as &nbsp; when it follows
- * another space or starts a line, where the parser would drop it.
+ * The HTML of every UTF-16 unit of text that flows (a paragraph, a quote),
+ * so callers can slice it with entity offsets: newlines become <br>; a
+ * space keeps its width as &nbsp; when it follows another space or starts a
+ * line, where the parser would drop it.
  */
-export const flowingTextHtml = (text: string): string[] =>
-    Array.from(text, (_, index): string => {
-        const char = text[index] ?? '';
-        if (char === '\n') return '<br>';
-        if (char === ' ' && (isLineStart(text, index) || text[index - 1] === ' ')) return NO_BREAK_SPACE;
-        return TEXT_ESCAPES[char] ?? char;
-    });
+export const flowingTextHtml = (text: string): string[] => {
+    const html: string[] = [];
+    for (let index = 0; index < text.length; index += 1) html.push(unitHtml(text, index));
+    return html;
+};
 
 /**
  * <pre> content: newlines stay (the parser keeps them there), but no line

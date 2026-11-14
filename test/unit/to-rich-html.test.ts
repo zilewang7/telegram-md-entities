@@ -134,3 +134,51 @@ describe('toRichHtml', () => {
         expect(toRichHtml(message)).toBe('<p>a<b>bc</b></p>');
     });
 });
+
+/** What a reader sees: tags out, <br> and blocks as newlines, references decoded */
+const visibleText = (html: string): string =>
+    html
+        .split('\n\n')
+        .map((block) =>
+            block
+                .replace(/<br>/g, '\n')
+                .replace(/<[^>]+>/g, '')
+                .replace(/&nbsp;/g, ' ')
+                .replace(/&#10;/g, '\n')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/&amp;/g, '&')
+        )
+        .join('\n\n');
+
+const hasLoneSurrogate = (text: string): boolean => /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(text);
+
+describe('toRichHtml: characters outside the BMP (surrogate pairs)', () => {
+    it.each<[string, RenderedMessage]>([
+        ['emoji in a paragraph', { text: 'a😀b', entities: [] }],
+        ['emoji at the end', { text: '他很开心 😄', entities: [] }],
+        ['emoji at the start, then spaces', { text: '😀  x', entities: [] }],
+        ['emoji at a run boundary', { text: 'x😀y😀z', entities: [entity('bold', 1, 2), entity('italic', 3, 3)] }],
+        ['emoji inside code', { text: 'a 😀😀 b', entities: [entity('code', 2, 4)] }],
+        ['family emoji (ZWJ sequence)', { text: '👨‍👩‍👧 ok', entities: [entity('underline', 0, 8)] }],
+        ['newline next to emoji', { text: '😀\n😀', entities: [entity('spoiler', 0, 5)] }],
+    ])('%s: the visible text is the input text', (_name, message) => {
+        const html = toRichHtml(message);
+        expect(visibleText(html)).toBe(message.text);
+        expect(hasLoneSurrogate(html)).toBe(false);
+    });
+
+    it('emoji in a quote, including the last character', () => {
+        const thinking = wrapInBlockquote({ text: '他很开心 😄', entities: [] }, true);
+        expect(toRichHtml(thinking)).toBe('<blockquote expandable>他很开心 😄</blockquote>');
+        expect(toRichHtml({ text: 'a😀b', entities: [] })).toBe('<p>a😀b</p>');
+    });
+
+    it('emoji around a pre block and in its text', () => {
+        const message = renderMarkdown('😀 前\n\n```\n🎸 x\n```\n\n后 😀');
+        const html = toRichHtml(message);
+        expect(html).toBe('<p>😀 前</p>\n\n<pre>🎸 x</pre>\n\n<p>后 😀</p>');
+        expect(hasLoneSurrogate(html)).toBe(false);
+    });
+});
