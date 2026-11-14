@@ -6,7 +6,7 @@
  * markdown), same per-leaf-block html tag pairing. Code, math, tables,
  * links and escapes produce no edits.
  */
-import type { Html, Parent, PhrasingContent, Root, RootContent } from 'mdast';
+import type { Html, Parent, PhrasingContent, Root, RootContent, Text } from 'mdast';
 import { match } from 'ts-pattern';
 import { cleanDetailsFragmentWithOffsets } from '../../render/details';
 import { parseMarkdown } from '../../render/parse';
@@ -14,6 +14,8 @@ import type { SpoilerMode } from '../../render/spoiler/micromark-spoiler';
 import { isUnderscoreStrong } from '../../render/strong-delimiter';
 import { scanDetailsElement, type DetailsElement, type DetailsPiece } from './details-scan';
 import { htmlValueEdits, type SpoilerSpanState } from './html-edits';
+import { loneDollarEdits } from './lone-dollars';
+import { softBreakEdits } from './soft-breaks';
 import { mapEdits, shiftEdits, type OffsetMap, type SourceEdit } from './source-edits';
 import { unpairedSyntheticEdits, type SyntheticRange } from './unpaired-synthetic';
 import { valueOffsetMap } from './value-offsets';
@@ -61,7 +63,15 @@ const wrapDelimiters = (node: Parent, open: string, close: string, ctx: CollectC
 const collectHtml = (node: Html, isBlock: boolean, spans: SpoilerSpanState, ctx: CollectContext): void => {
     const map = valueOffsetMap(ctx.source, node, node.value);
     if (map === null) return;
-    ctx.edits.push(...mapEdits(htmlValueEdits(node.value, isBlock, spans), map));
+    ctx.edits.push(...mapEdits(htmlValueEdits(node.value, isBlock, spans), map, node.value, ctx.source));
+};
+
+/** Literal text: soft line breaks become hard ones, lone '$' are escaped */
+const collectText = (node: Text, ctx: CollectContext): void => {
+    const start = node.position?.start.offset;
+    const end = node.position?.end.offset;
+    if (start === undefined || end === undefined) return;
+    ctx.edits.push(...softBreakEdits(ctx.source, start, end), ...loneDollarEdits(ctx.source, start, end));
 };
 
 const collectPhrasing = (
@@ -92,6 +102,7 @@ const collectPhrasing = (
                 collectPhrasing(link.children, spans, ctx)
             )
             .with({ type: 'html' }, (html) => collectHtml(html, false, spans, ctx))
+            .with({ type: 'text' }, (text) => collectText(text, ctx))
             .otherwise(() => undefined);
     }
 };
@@ -134,7 +145,7 @@ const cleanedPieceEdits = (piece: DetailsPiece, options: RewriteOptions): Source
     const raw = piece.node.value.slice(piece.start, piece.end);
     const cleaned = cleanDetailsFragmentWithOffsets(raw);
     const toRaw: OffsetMap = (offset) => cleaned.rawOffsets[offset];
-    return shiftEdits(mapEdits(editsForMarkdown(cleaned.text, options), toRaw), piece.start);
+    return shiftEdits(mapEdits(editsForMarkdown(cleaned.text, options), toRaw, cleaned.text, raw), piece.start);
 };
 
 /** A piece the walker re-parses as it is (the markdown trailing </details>) */
@@ -144,7 +155,7 @@ const rawPieceEdits = (piece: DetailsPiece, options: RewriteOptions): SourceEdit
 const collectPieceEdits = (piece: DetailsPiece, valueEdits: SourceEdit[], ctx: CollectContext): void => {
     const map = valueOffsetMap(ctx.source, piece.node, piece.node.value);
     if (map === null) return;
-    ctx.edits.push(...mapEdits(valueEdits, map));
+    ctx.edits.push(...mapEdits(valueEdits, map, piece.node.value, ctx.source));
 };
 
 const collectDetails = (element: DetailsElement, ctx: CollectContext): void => {

@@ -53,7 +53,7 @@ describe('toRichMarkdown: everything else stays byte-identical', () => {
         ['intraword underscores', 'snake__case__name'],
         ['autolink with underscores', 'https://a.com/__init__.py and <https://b.com/__x__>'],
         ['table', '| a | b |\n| :-- | --: |\n| $x^2$ | `c` |'],
-        ['math and marks', 'price $5 and $10, $$E=mc^2$$, ==mark==, a==b, [^1]'],
+        ['math and marks', '公式 $E = mc^2$, $$x^2$$, ==mark==, a==b, [^1]'],
         ['links and images', '[label](https://a.com "title") ![alt **x**](https://a.com/i.png)'],
         ['known html tags', 'a <b>b</b> <i>i</i> <code>c</code> <a href="https://a.com">l</a> <br/> x'],
         ['html list block', '<ul>\n  <li><b>一</b>：说明</li>\n  <li>二</li>\n</ul>'],
@@ -108,8 +108,9 @@ describe('toRichMarkdown: HTML the package shows literally is escaped', () => {
 
     it('an html block led by an unknown tag turns into literal paragraph text', () => {
         expect(expectSameDisplay('<div>**x** _y_</div>\n\npara')).toBe('&lt;div>\\*\\*x\\*\\* \\_y\\_&lt;/div>\n\npara');
+        // A line break stays a hard break, except before a line opening a tag
         expect(expectSameDisplay('- item\n  <div>\n  # b_c\n  </div>')).toBe(
-            '- item\n  &lt;div>\n  \\# b\\_c\n  &lt;/div>'
+            '- item\n  &lt;div>\\\n  \\# b\\_c\n  &lt;/div>'
         );
     });
 
@@ -117,6 +118,48 @@ describe('toRichMarkdown: HTML the package shows literally is escaped', () => {
         // The package shows '&lt;' raw inside an html block, Telegram decodes
         // it: the display referee cannot judge this one, so no expectSameDisplay
         expect(toRichMarkdown('<ul>\n<li>List<String></li>\n</ul>')).toBe('<ul>\n<li>List&lt;String></li>\n</ul>');
+    });
+});
+
+describe('toRichMarkdown: soft line breaks become hard ones', () => {
+    it.each([
+        ['one\ntwo', 'one\\\ntwo'],
+        ['> a\n> b', '> a\\\n> b'],
+        ['- c\n  d', '- c\\\n  d'],
+        ['trailing space \nnext', 'trailing space\\\nnext'],
+        ['**a\nb** c\nd', '<b>a\\\nb</b> c\\\nd'],
+        ['<b>a</b>\n<i>b</i>', '<b>a</b>\\\n<i>b</i>'],
+        ['# heading\n\npara\n', '# heading\n\npara\n'],
+        ['hard  \nbreak and\\\nescaped', 'hard  \nbreak and\\\nescaped'],
+        ['```\ncode\nlines\n```\n`inline\ncode`', '```\ncode\nlines\n```\n`inline\ncode`'],
+    ])('%j', (input, expected) => {
+        expect(expectSameDisplay(input)).toBe(expected);
+    });
+
+    it('inside <details> a soft break gets the backslash, a <br> stays', () => {
+        expect(expectSameDisplay('<details>\nline1\nline2<br>line3\n</details>')).toBe(
+            '<details>\nline1\\\nline2<br>line3\n</details>'
+        );
+    });
+
+    it('streaming frames get the same hard breaks', () => {
+        expect(toRichMarkdown('a\nb **c', { streaming: true })).toBe('a\\\nb <b>c</b>');
+    });
+});
+
+describe("toRichMarkdown: a '$' stays only as part of a pandoc math pair", () => {
+    it.each([
+        ['价格$5和$10之间', '价格\\$5和\\$10之间'],
+        ['$x^2$ costs $5', '$x^2$ costs \\$5'],
+        ['公式 $E = mc^2$', '公式 $E = mc^2$'],
+        ['$5 and $10', '\\$5 and \\$10'],
+        ['\\$5', '\\$5'],
+        ['`$5` and $', '`$5` and \\$'],
+        ['$a $b$ and $ x$', '$a $b$ and \\$ x\\$'],
+        ['$$E=mc^2$$ and $$', '$$E=mc^2$$ and $$'],
+        ['**$5** and $6', '<b>\\$5</b> and \\$6'],
+    ])('%j', (input, expected) => {
+        expect(expectSameDisplay(input)).toBe(expected);
     });
 });
 

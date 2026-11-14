@@ -7,11 +7,14 @@
  * (here: underline), has no loose '|| x ||' spoiler, drops
  * <span class="tg-spoiler">, follows its own flanking rules (CJK-adjacent
  * '**' may stay literal) and interprets HTML this package shows literally.
- * So the source is rewritten at the offsets the package's own parser
- * reports: emphasis, strong, strikethrough and spoilers become tags, and
- * HTML the package shows as text is escaped. Every other byte is kept —
- * code, tables, math, links and escapes pass through untouched, which is
- * what makes the native rich rendering worth it.
+ * It also joins a paragraph's lines with a space and reads '$…$' as math
+ * more eagerly than pandoc. So the source is rewritten at the offsets the
+ * package's own parser reports: emphasis, strong, strikethrough and
+ * spoilers become tags, HTML the package shows as text is escaped, soft
+ * line breaks become hard ones and a '$' outside a pandoc math pair is
+ * escaped. Every other byte is kept — code, tables, math, links and escapes
+ * pass through untouched, which is what makes the native rich rendering
+ * worth it.
  */
 import { collectRichEdits } from './collect-edits';
 import { closeStreamingTail } from './close-streaming-tail';

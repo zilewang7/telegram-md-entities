@@ -38,8 +38,20 @@ const needsBackslash = (text: string, index: number): boolean => {
 };
 
 /**
+ * A newline in escaped html becomes a paragraph's soft break, which
+ * Telegram joins with a space; make it a hard one ('\' before it) when a
+ * line of text follows. Not before a blank line or a line opening a tag:
+ * a block may start there, and a '\' ending a paragraph shows literally.
+ */
+const needsHardBreak = (text: string, index: number): boolean => {
+    const lineEnd = text.indexOf('\n', index + 1);
+    const nextLine = text.slice(index + 1, lineEnd === -1 ? text.length : lineEnd).trimStart();
+    return nextLine !== '' && !nextLine.startsWith('<');
+};
+
+/**
  * Escape text[start, end) as literal. `text` is the whole piece the range
- * lives in (for line-start checks); edits are relative to it.
+ * lives in (for line checks); edits are relative to it.
  */
 export const literalEscapeEdits = (text: string, start: number, end: number): SourceEdit[] => {
     const edits: SourceEdit[] = [];
@@ -47,6 +59,8 @@ export const literalEscapeEdits = (text: string, start: number, end: number): So
         const char = text[index] ?? '';
         if (char === '<') {
             edits.push({ start: index, end: index + 1, text: '&lt;' });
+        } else if (char === '\n') {
+            if (needsHardBreak(text, index)) edits.push({ start: index, end: index + 1, text: '\\\n' });
         } else if (needsBackslash(text, index)) {
             edits.push({ start: index, end: index + 1, text: `\\${char}` });
         }

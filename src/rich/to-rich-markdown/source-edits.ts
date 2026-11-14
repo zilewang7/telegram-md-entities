@@ -16,18 +16,24 @@ export interface SourceEdit {
 export type OffsetMap = (offset: number) => number | undefined;
 
 /**
- * Move edits collected on an inner string into the outer source. An edit
- * whose characters are not contiguous in the outer source (a container
- * prefix or a <br> replacement inside the range) is dropped: leaving those
- * bytes alone is always safe, replacing them could break the structure.
+ * Move edits collected on `inner` (an html value, a cleaned fragment) into
+ * `outer`. An edit is dropped unless the characters it replaces appear
+ * unchanged and contiguous in `outer`: a container prefix inside the range,
+ * or a newline that stands for a <br> tag, must not be rewritten. Leaving
+ * those bytes alone is always safe; replacing them could break structure.
  */
-export const mapEdits = (edits: readonly SourceEdit[], map: OffsetMap): SourceEdit[] => {
+export const mapEdits = (
+    edits: readonly SourceEdit[],
+    map: OffsetMap,
+    inner: string,
+    outer: string
+): SourceEdit[] => {
     const mapped: SourceEdit[] = [];
     for (const edit of edits) {
         const start = map(edit.start);
         const last = map(edit.end - 1);
         if (start === undefined || last === undefined) continue;
-        if (last - start !== edit.end - 1 - edit.start) continue;
+        if (outer.slice(start, last + 1) !== inner.slice(edit.start, edit.end)) continue;
         mapped.push({ start, end: last + 1, text: edit.text });
     }
     return mapped;

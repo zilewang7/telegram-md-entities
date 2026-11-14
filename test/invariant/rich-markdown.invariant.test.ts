@@ -32,6 +32,13 @@ const PREFIX_STRIDE = 3;
 const INSERTED_TAG = /<\/?(?:b|i|u|s|tg-spoiler)>/g;
 const DELIMITER_CHARS = new Set(['*', '_', '~', '|']);
 
+/**
+ * Undo the escapes the rewrite adds to text (a hard break for a soft one,
+ * '\$' for a lone dollar), on both sides, so the two compare as text
+ */
+const withoutTextEscapes = (markdown: string): string =>
+    markdown.replace(/[ \t]*\\?\n/g, '\n').replace(/\\\$/g, '$');
+
 /** `kept` is `input` with some delimiter characters taken out, nothing else */
 const removedOnlyDelimiters = (input: string, kept: string): boolean => {
     let keptIndex = 0;
@@ -89,11 +96,11 @@ describe('toRichMarkdown invariants', () => {
         );
     });
 
-    it('without raw HTML, only delimiters change: tags out, the rest of the input is kept in order', () => {
+    it('without raw HTML, only delimiters and text escapes change: the rest of the input is kept in order', () => {
         fc.assert(
             fc.property(markdownSoup, (input) => {
-                const kept = toRichMarkdown(input).replace(INSERTED_TAG, '');
-                expect(removedOnlyDelimiters(input, kept), JSON.stringify(input)).toBe(true);
+                const kept = withoutTextEscapes(toRichMarkdown(input).replace(INSERTED_TAG, ''));
+                expect(removedOnlyDelimiters(withoutTextEscapes(input), kept), JSON.stringify(input)).toBe(true);
             }),
             { numRuns: 500 }
         );
