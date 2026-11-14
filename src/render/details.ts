@@ -37,6 +37,26 @@ export const extractLeadingSummary = (
     return null;
 };
 
+/**
+ * Where extractLeadingSummary's pieces sit in raw (same patterns): the
+ * summary is raw[summaryStart, summaryEnd), the rest starts at restStart.
+ * For callers that rewrite the source in place instead of re-rendering it.
+ */
+export const locateLeadingSummary = (
+    raw: string
+): { summaryStart: number; summaryEnd: number; restStart: number } | null => {
+    const located =
+        new RegExp(SUMMARY_CLOSED.source, 'id').exec(raw) ??
+        new RegExp(SUMMARY_UNCLOSED.source, 'id').exec(raw);
+    const summarySpan = located?.indices?.[1];
+    if (!located || !summarySpan) return null;
+    return {
+        summaryStart: summarySpan[0],
+        summaryEnd: summarySpan[1],
+        restStart: located.index + located[0].length,
+    };
+};
+
 export type DetailsCloseScan =
     | { closed: true; inside: string; after: string }
     | { closed: false; depth: number };
@@ -79,3 +99,43 @@ export const cleanDetailsFragment = (raw: string, dropPartialTailTag: boolean): 
     const stripped = dropPartialTailTag ? unbroken.replace(PARTIAL_TAIL_TAG, '') : unbroken;
     return stripped.trim();
 };
+
+/** The text cleanDetailsFragment(raw, false) gives, plus where each char came from */
+export interface CleanedFragment {
+    text: string;
+    /** rawOffsets[i] is the raw index of text[i] (a <br> maps to its '<') */
+    rawOffsets: number[];
+}
+
+/** cleanDetailsFragment without the tail drop, keeping a map back into raw */
+export const cleanDetailsFragmentWithOffsets = (raw: string): CleanedFragment => {
+    let text = '';
+    const rawOffsets: number[] = [];
+    const scanner = new RegExp(BR_TAG.source, 'gi');
+    let cursor = 0;
+    const copyUpTo = (end: number): void => {
+        for (let index = cursor; index < end; index += 1) {
+            text += raw[index] ?? '';
+            rawOffsets.push(index);
+        }
+    };
+    let matched = scanner.exec(raw);
+    while (matched !== null) {
+        copyUpTo(matched.index);
+        text += '\n';
+        rawOffsets.push(matched.index);
+        cursor = matched.index + matched[0].length;
+        matched = scanner.exec(raw);
+    }
+    copyUpTo(raw.length);
+
+    const leading = text.length - text.trimStart().length;
+    const kept = text.trim().length;
+    return {
+        text: text.slice(leading, leading + kept),
+        rawOffsets: rawOffsets.slice(leading, leading + kept),
+    };
+};
+
+/** A partial tag at the very end of a streaming buffer, e.g. `<b` or `</det` */
+export const stripPartialTailTag = (raw: string): string => raw.replace(PARTIAL_TAIL_TAG, '');

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { renderMarkdown } from '../../src/index';
+import {
+    cleanDetailsFragment,
+    cleanDetailsFragmentWithOffsets,
+    extractLeadingSummary,
+    locateLeadingSummary,
+} from '../../src/render/details';
 
 const REAL_WORLD_EXAMPLE = [
     '<details>',
@@ -132,5 +138,43 @@ describe('<details>/<summary> → expandable blockquote', () => {
             const streaming = renderMarkdown(REAL_WORLD_EXAMPLE, { streaming: true });
             expect(streaming).toEqual(strict);
         });
+    });
+});
+
+describe('details offset helpers agree with the string helpers', () => {
+    const SAMPLES = [
+        '<summary>S</summary>rest',
+        '  \n<summary class="x">多\n行</summary  >\nrest',
+        '<summary>unclosed summary',
+        '<summary>a</summary><summary>b</summary>',
+        'no summary here',
+        '\n<br>\n  text **x**<br/>more<BR >\n\n',
+        '   ',
+        '',
+    ];
+
+    it('locateLeadingSummary points at what extractLeadingSummary copies', () => {
+        for (const raw of SAMPLES) {
+            const extracted = extractLeadingSummary(raw);
+            const located = locateLeadingSummary(raw);
+            expect(located === null, raw).toBe(extracted === null);
+            if (extracted && located) {
+                expect(raw.slice(located.summaryStart, located.summaryEnd), raw).toBe(extracted.summary);
+                expect(raw.slice(located.restStart), raw).toBe(extracted.rest);
+            }
+        }
+    });
+
+    it('cleanDetailsFragmentWithOffsets gives the cleaned text and a map back into raw', () => {
+        for (const raw of SAMPLES) {
+            const cleaned = cleanDetailsFragmentWithOffsets(raw);
+            expect(cleaned.text, raw).toBe(cleanDetailsFragment(raw, false));
+            expect(cleaned.rawOffsets).toHaveLength(cleaned.text.length);
+            cleaned.rawOffsets.forEach((rawOffset, index) => {
+                const char = cleaned.text[index];
+                // A <br> maps to its '<'; every other char to itself
+                expect(raw[rawOffset] === char || raw[rawOffset] === '<', raw).toBe(true);
+            });
+        }
     });
 });

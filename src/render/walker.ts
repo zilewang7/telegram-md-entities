@@ -30,6 +30,7 @@ import { parseMarkdown } from './parse';
 import { alignedTableText, plainTableText, tableToCells } from './table';
 import { tableHasWideContent, tableToRecordLines } from './table-records';
 import { plainTextOfNodes } from './plain-text';
+import { isUnderscoreStrong } from './strong-delimiter';
 
 export interface WalkOptions {
     streaming: boolean;
@@ -205,15 +206,9 @@ const renderUnknown = (node: Node, ctx: WalkContext): void => {
     if (text) ctx.emitter.pushText(text);
 };
 
-/**
- * Telegram MarkdownV2 dialect: '__text__' means underline, '**text**' bold.
- * mdast strong doesn't record its delimiter, so read it back off the source.
- */
-const strongEntityType = (node: Strong, ctx: WalkContext): 'bold' | 'underline' => {
-    if (!ctx.options.underline) return 'bold';
-    const offset = node.position?.start.offset;
-    return offset !== undefined && ctx.source[offset] === '_' ? 'underline' : 'bold';
-};
+/** '__text__' is underline unless the dialect option turns it off */
+const strongEntityType = (node: Strong, ctx: WalkContext): 'bold' | 'underline' =>
+    ctx.options.underline && isUnderscoreStrong(node, ctx.source) ? 'underline' : 'bold';
 
 const walkInlineChildren = (nodes: PhrasingContent[], ctx: WalkContext): void => {
     for (const node of nodes) walkInline(node, ctx);

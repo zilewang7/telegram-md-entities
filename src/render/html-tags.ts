@@ -27,7 +27,7 @@ export interface HtmlTagFrame {
     list?: { ordered: boolean; count: number };
 }
 
-type HtmlToken =
+export type HtmlToken =
     | { kind: 'text'; value: string }
     | { kind: 'tag'; name: string; attrs: string; raw: string; closing: boolean; selfClosing: boolean };
 
@@ -37,7 +37,7 @@ const HREF_ATTR = /(?:^|\s)href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i;
 const CLASS_ATTR = /(?:^|\s)class\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i;
 const LANGUAGE_CLASS = /(?:^|\s)language-([^\s]+)/;
 
-const tokenizeHtml = (value: string): HtmlToken[] => {
+export const tokenizeHtml = (value: string): HtmlToken[] => {
     const tokens: HtmlToken[] = [];
     const scanner = new RegExp(TAG_PATTERN.source, 'g');
     let lastIndex = 0;
@@ -284,6 +284,26 @@ export const renderHtmlValue = (
         openFrame(token.name, meaning, emitter, stack);
     });
 };
+
+/**
+ * How renderHtmlValue reads a tag, for callers that rewrite html in place:
+ * 'spoiler-span' is <span class="tg-spoiler"> (its close is resolved
+ * through the pairing stack), 'literal' shows as text, 'markup' is any
+ * other tag the renderer gives a meaning (entity, list, line break, or a
+ * silently dropped details/summary/stray close).
+ */
+export type TagReading = 'markup' | 'spoiler-span' | 'literal';
+
+export const readOpenTag = (name: string, attrs: string): TagReading => {
+    if (name === 'br') return 'markup';
+    const meaning = classifyOpenTag(name, attrs);
+    if (meaning.kind === 'literal') return 'literal';
+    return name === 'span' ? 'spoiler-span' : 'markup';
+};
+
+/** A close tag the renderer drops or pairs (span pairs only with a spoiler span) */
+export const isKnownCloseTag = (name: string): boolean =>
+    name === 'br' || KNOWN_CLOSE_NAMES.has(name);
 
 /**
  * Flatten a raw html value to its visible text for contexts where entities
