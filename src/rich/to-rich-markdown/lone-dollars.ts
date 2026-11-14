@@ -9,40 +9,11 @@
  * the result does not depend on how Telegram pairs. '$$' runs are left as
  * written; they still count as the next '$'.
  */
+import { dollarRuns } from './dollar-runs';
 import type { SourceEdit } from './source-edits';
-
-interface DollarRun {
-    /** Source offset of the first '$' */
-    at: number;
-    length: number;
-}
 
 const isWhitespace = (char: string | undefined): boolean => char === undefined || /\s/.test(char);
 const isDigit = (char: string | undefined): boolean => char !== undefined && /[0-9]/.test(char);
-const isAsciiPunctuation = (char: string | undefined): boolean =>
-    char !== undefined && /[!-/:-@[-`{-~]/.test(char);
-
-/** The unescaped '$' runs in source[start, end), in order */
-const dollarRuns = (source: string, start: number, end: number): DollarRun[] => {
-    const runs: DollarRun[] = [];
-    let index = start;
-    while (index < end) {
-        const char = source[index];
-        if (char === '\\' && index + 1 < end && isAsciiPunctuation(source[index + 1])) {
-            index += 2;
-            continue;
-        }
-        if (char === '$') {
-            let runEnd = index;
-            while (runEnd < end && source[runEnd] === '$') runEnd += 1;
-            runs.push({ at: index, length: runEnd - index });
-            index = runEnd;
-            continue;
-        }
-        index += 1;
-    }
-    return runs;
-};
 
 /**
  * Pandoc's conditions: a non-space right after the opener, a non-space

@@ -143,6 +143,24 @@ describe('toRichMarkdown: soft line breaks become hard ones', () => {
         );
     });
 
+    it('line endings inside a $$ formula stay as written', () => {
+        const formula = '$$\nE = mc^2\n$$';
+        expect(expectSameDisplay(formula)).toBe(formula);
+        expect(toRichMarkdown(formula, { streaming: true })).toBe(formula);
+        // A trailing space inside the formula is not trimmed either
+        expect(expectSameDisplay('公式：\n\n$$\nE = mc^2 \n$$\n\n后文')).toBe('公式：\n\n$$\nE = mc^2 \n$$\n\n后文');
+        expect(expectSameDisplay('行内 $$E=mc^2$$ 后文')).toBe('行内 $$E=mc^2$$ 后文');
+    });
+
+    it('around a $$ formula inside a paragraph, only the outer line endings get the backslash', () => {
+        expect(expectSameDisplay('a\n$$\nx\n$$\nb')).toBe('a\\\n$$\nx\n$$\\\nb');
+    });
+
+    it('an unpaired $$ keeps the normal hard breaks', () => {
+        expect(expectSameDisplay('$$\nx\n$$ and $$\ny')).toBe('$$\nx\n$$ and $$\\\ny');
+        expect(toRichMarkdown('$$\nE = mc', { streaming: true })).toBe('$$\\\nE = mc');
+    });
+
     it('streaming frames get the same hard breaks', () => {
         expect(toRichMarkdown('a\nb **c', { streaming: true })).toBe('a\\\nb <b>c</b>');
     });
