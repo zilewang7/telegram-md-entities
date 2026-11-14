@@ -257,6 +257,30 @@ describe("toRichMarkdown: a '$' stays only in a formula pair with the very next 
     });
 });
 
+describe('toRichMarkdown: autolinks stay byte-identical', () => {
+    it.each([
+        ['bare URL with $', '用 https://graph.microsoft.com/v1.0/me/messages?$select=subject 即可'],
+        ['angle autolink with $', '<https://api.example.com/odata/People?$top=2>'],
+        ['www literal with $ and underscores', 'www.example.com/a?$b=1&c=__x__'],
+        ['angle autolink with markup-like text', '<https://a.com/||x||/*y*>'],
+    ])('%s', (_name, input) => {
+        expect(expectSameDisplay(input)).toBe(input);
+    });
+
+    it('text outside the autolink is still rewritten; a [label] link keeps its edits', () => {
+        expect(expectSameDisplay('www.example.com/a?$b=1 和 $5')).toBe('www.example.com/a?$b=1 和 \\$5');
+        expect(expectSameDisplay('[价格 $5 **粗**](https://a.com/?$x=1) 与 $3')).toBe(
+            '[价格 \\$5 <b>粗</b>](https://a.com/?$x=1) 与 \\$3'
+        );
+    });
+
+    it('a line ending in a bare URL gets the two-space hard break, not a backslash', () => {
+        expect(expectSameDisplay('见 https://a.com/__init__.py\n下一行')).toBe('见 https://a.com/__init__.py  \n下一行');
+        expect(expectSameDisplay('见 https://a.com/x \n下一行')).toBe('见 https://a.com/x  \n下一行');
+        expect(expectSameDisplay('<https://a.com/x>\n下一行')).toBe('<https://a.com/x>\\\n下一行');
+    });
+});
+
 describe('toRichMarkdown: streaming', () => {
     it.each([
         ['abc __und', 'abc <u>und</u>'],

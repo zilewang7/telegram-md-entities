@@ -19,14 +19,20 @@ export const softBreakEdits = (
     source: string,
     start: number,
     end: number,
-    untouched: ReadonlySet<number>
+    untouched: ReadonlySet<number>,
+    followsBareUrl: boolean
 ): SourceEdit[] => {
     const edits: SourceEdit[] = [];
     for (let index = start; index < end; index += 1) {
         if (source[index] !== '\n' || untouched.has(index)) continue;
+        // Trailing spaces may also sit just before the node (after a link
+        // or a strong they belong to no node)
         let lineEnd = index;
-        while (lineEnd > start && (source[lineEnd - 1] === ' ' || source[lineEnd - 1] === '\t')) lineEnd -= 1;
-        edits.push({ start: lineEnd, end: index + 1, text: '\\\n' });
+        while (lineEnd > 0 && (source[lineEnd - 1] === ' ' || source[lineEnd - 1] === '\t')) lineEnd -= 1;
+        // A '\' right after a bare URL would become part of the URL; two
+        // trailing spaces are the other hard-break form
+        const hardBreak = lineEnd <= start && followsBareUrl ? '  \n' : '\\\n';
+        edits.push({ start: lineEnd, end: index + 1, text: hardBreak });
     }
     return edits;
 };

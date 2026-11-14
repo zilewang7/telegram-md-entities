@@ -91,15 +91,36 @@ const collectHtml = (node: Html, isBlock: boolean, scope: LeafScope, ctx: Collec
 };
 
 /** Literal text: soft line breaks become hard ones, lone '$' are escaped */
-const collectText = (node: Text, scope: LeafScope, ctx: CollectContext): void => {
+const collectText = (node: Text, followsBareUrl: boolean, scope: LeafScope, ctx: CollectContext): void => {
     const start = node.position?.start.offset;
     const end = node.position?.end.offset;
     if (start === undefined || end === undefined) return;
     const edits = [
-        ...softBreakEdits(ctx.source, start, end, scope.math.untouchedNewlines),
+        ...softBreakEdits(ctx.source, start, end, scope.math.untouchedNewlines, followsBareUrl),
         ...loneDollarEdits(ctx.source, start, end),
     ];
     pushOutsideFormulas(edits, scope, ctx);
+};
+
+/**
+ * An autolink ('<https://…>') or a GFM autolink literal (a bare URL): its
+ * text is the URL itself, so an escape inserted there ('?$select=' →
+ * '?\$select=') would change the link. Only a '[label]' link has text of
+ * its own.
+ */
+const isAutolink = (link: Parent, source: string): boolean => {
+    const start = link.position?.start.offset;
+    return start !== undefined && source[start] !== '[';
+};
+
+/** A GFM autolink literal right before `next`, with at most whitespace between */
+const isBareUrlBefore = (previous: PhrasingContent | undefined, next: PhrasingContent, source: string): boolean => {
+    if (previous?.type !== 'link' || !isAutolink(previous, source)) return false;
+    const start = previous.position?.start.offset;
+    const end = previous.position?.end.offset;
+    const nextStart = next.position?.start.offset;
+    if (start === undefined || end === undefined || nextStart === undefined) return false;
+    return source[start] !== '<' && source.slice(end, nextStart).trim() === '';
 };
 
 const collectPhrasing = (
@@ -107,7 +128,7 @@ const collectPhrasing = (
     scope: LeafScope,
     ctx: CollectContext
 ): void => {
-    for (const node of nodes) {
+    nodes.forEach((node, index) => {
         match(node)
             .with({ type: 'strong' }, (strong) => {
                 const underline = ctx.options.underline && isUnderscoreStrong(strong, ctx.source);
@@ -126,13 +147,15 @@ const collectPhrasing = (
                 wrapDelimiters(spoiler, '<tg-spoiler>', '</tg-spoiler>', scope, ctx);
                 collectPhrasing(spoiler.children, scope, ctx);
             })
-            .with({ type: 'link' }, { type: 'linkReference' }, (link) =>
-                collectPhrasing(link.children, scope, ctx)
-            )
+            .with({ type: 'link' }, { type: 'linkReference' }, (link) => {
+                if (!isAutolink(link, ctx.source)) collectPhrasing(link.children, scope, ctx);
+            })
             .with({ type: 'html' }, (html) => collectHtml(html, false, scope, ctx))
-            .with({ type: 'text' }, (text) => collectText(text, scope, ctx))
+            .with({ type: 'text' }, (text) =>
+                collectText(text, isBareUrlBefore(nodes[index - 1], text, ctx.source), scope, ctx)
+            )
             .otherwise(() => undefined);
-    }
+    });
 };
 
 /** Source ranges of the inline code under nodes: '$$' there is code, not math */
