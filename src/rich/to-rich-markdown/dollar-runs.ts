@@ -1,6 +1,6 @@
 /**
- * The '$' runs of a text node, as Telegram's math syntax sees them: a
- * single '$' delimits inline math, a '$$' run display math. Escaped '\$'
+ * The '$' runs of a piece of source, as Telegram's math syntax sees them:
+ * a single '$' delimits inline math, a '$$' run display math. Escaped '\$'
  * is not a delimiter.
  */
 
@@ -41,12 +41,27 @@ export const dollarRuns = (source: string, start: number, end: number): DollarRu
     return runs;
 };
 
+/** A source range [start, end) */
+export interface SourceSpan {
+    start: number;
+    end: number;
+}
+
+const overlaps = (run: DollarRun, spans: readonly SourceSpan[]): boolean =>
+    spans.some((span) => run.at < span.end && run.at + run.length > span.start);
+
 /**
  * The '$$…$$' formulas in source[start, end): every '$$' run paired with
- * the next one, in order. An unpaired last run opens nothing.
+ * the next one, in order. Runs inside `opaque` ranges (code spans) do not
+ * count. An unpaired last run opens nothing.
  */
-export const displayFormulas = (source: string, start: number, end: number): DisplayFormula[] => {
-    const doubles = dollarRuns(source, start, end).filter((run) => run.length === 2);
+export const displayFormulas = (
+    source: string,
+    start: number,
+    end: number,
+    opaque: readonly SourceSpan[] = []
+): DisplayFormula[] => {
+    const doubles = dollarRuns(source, start, end).filter((run) => run.length === 2 && !overlaps(run, opaque));
     const formulas: DisplayFormula[] = [];
     for (let index = 0; index + 1 < doubles.length; index += 2) {
         const opener = doubles[index];

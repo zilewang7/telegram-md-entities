@@ -181,6 +181,31 @@ describe('toRichMarkdown: soft line breaks become hard ones', () => {
     });
 });
 
+describe('toRichMarkdown: a $$ formula reaches Telegram as written', () => {
+    it.each([
+        ['spoiler bars inside', '$$\n||x||_2 = 1\n$$\n\n后文'],
+        ['asterisks inside', '证明：\n$$\nf(x^*) \\le f(x) \\quad x^* \\in X\n$$\n后文'],
+        ['emphasis across a $$ line', '$$\n*a\n$$ *'],
+        ['html and a lone $ inside', '> $$\n> ||a|| <b>x</b> $5 List<T>\n> $$\n> after'],
+        ['strong crossing the formula', '**a $$x**y$$ b**'],
+        ['inline, in a table cell', '| $$a*b*c$$ | x |\n| --- | --- |'],
+    ])('%s', (_name, input) => {
+        expect(expectSameDisplay(input)).toBe(input);
+        expect(toRichMarkdown(input, { streaming: true })).toBe(input);
+    });
+
+    it('text around a formula is still rewritten', () => {
+        expect(expectSameDisplay('**粗** $$\n||x||\n$$ ||藏||\n下一行')).toBe(
+            '<b>粗</b> $$\n||x||\n$$ <tg-spoiler>藏</tg-spoiler>\\\n下一行'
+        );
+        expect(expectSameDisplay('| $$a*b*c$$ | **x** |\n| --- | --- |')).toBe('| $$a*b*c$$ | <b>x</b> |\n| --- | --- |');
+    });
+
+    it('$$ inside a code span is code, not a formula delimiter', () => {
+        expect(expectSameDisplay('`$$` 然后 ||a||\n下一行 $$')).toBe('`$$` 然后 <tg-spoiler>a</tg-spoiler>\\\n下一行 $$');
+    });
+});
+
 describe("toRichMarkdown: a '$' stays only in a formula pair with the very next '$'", () => {
     it.each([
         ['价格$5和$10之间', '价格\\$5和\\$10之间'],
@@ -204,17 +229,21 @@ describe("toRichMarkdown: a '$' stays only in a formula pair with the very next 
         expect(expectSameDisplay(input)).toBe(expected);
     });
 
-    it('every single $ left unescaped belongs to a pair with nothing between', () => {
+    it('every single $ left unescaped outside a $$ formula belongs to a pair with nothing between', () => {
         fc.assert(
             fc.property(
                 fc.array(fc.constantFrom('$', '$$', '\\$', '5', 'x', '^2', ' ', '和', '，'), { maxLength: 20 }),
                 (parts) => {
                     const output = toRichMarkdown(parts.join(''));
                     // Unescaped '$' runs, in order: singles must come in adjacent pairs
-                    const runs = output.replace(/\\\$/g, '').match(/\$+/g) ?? [];
+                    const runs = (output.match(/\\\$|\$+/g) ?? []).filter((token) => token !== '\\$');
+                    // '$$' runs pair in order; a formula is passed through untouched
+                    const doubles = runs.flatMap((run, position) => (run === '$$' ? [position] : []));
+                    const insideFormula = (position: number): boolean =>
+                        doubles.some((opener, pair) => pair % 2 === 0 && (doubles[pair + 1] ?? -1) > position && opener < position);
                     let index = 0;
                     while (index < runs.length) {
-                        if (runs[index] === '$') {
+                        if (runs[index] === '$' && !insideFormula(index)) {
                             expect(runs[index + 1], output).toBe('$');
                             index += 2;
                         } else {

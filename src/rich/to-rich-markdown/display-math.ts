@@ -1,12 +1,24 @@
 /**
- * Line endings around '$$…$$' that must reach Telegram as written. Inside a
- * formula a newline is part of the display math, and a backslash there
- * breaks it. A formula whose opening '$$' starts a line is a block to
- * Telegram (measured: 'a\n$$\nx\n$$\nb' is paragraph, math block,
+ * '$$…$$' display formulas must reach Telegram exactly as written. They are
+ * paired over a whole leaf block (a paragraph, heading or table cell),
+ * because markup inside a formula ('||x||_2', 'x^* … x^*') splits it into
+ * several mdast nodes. Inside a formula nothing is rewritten: no tags, no
+ * escapes, no hard breaks. A formula whose opening '$$' starts a line is a
+ * block to Telegram (measured: 'a\n$$\nx\n$$\nb' is paragraph, math block,
  * paragraph): a backslash before that line, or after its closing line,
  * would show up literally and leave the block unclosed.
  */
-import { displayFormulas } from './dollar-runs';
+import { displayFormulas, type SourceSpan } from './dollar-runs';
+import type { SourceEdit } from './source-edits';
+
+export interface LeafMath {
+    /** Whole formulas, '$$' runs included */
+    formulas: SourceSpan[];
+    /** Newlines to leave as written: inside formulas and around block ones */
+    untouchedNewlines: ReadonlySet<number>;
+}
+
+export const NO_MATH: LeafMath = { formulas: [], untouchedNewlines: new Set() };
 
 /** Only a quote prefix or indentation between the line start and offset */
 const startsLine = (source: string, offset: number): boolean => {
@@ -20,20 +32,31 @@ const endsLine = (source: string, offset: number): boolean => {
     return source.slice(offset, lineEnd === -1 ? source.length : lineEnd).trim() === '';
 };
 
-/** Offsets of the newlines in source[start, end) to leave as written */
-export const formulaLineEndings = (source: string, start: number, end: number): Set<number> => {
-    const untouched = new Set<number>();
-    for (const { opener, closer } of displayFormulas(source, start, end)) {
+/** The formulas of the leaf block source[start, end); `opaque` are its code spans */
+export const leafMath = (
+    source: string,
+    start: number,
+    end: number,
+    opaque: readonly SourceSpan[]
+): LeafMath => {
+    const formulas: SourceSpan[] = [];
+    const untouchedNewlines = new Set<number>();
+    for (const { opener, closer } of displayFormulas(source, start, end, opaque)) {
         const closerEnd = closer.at + closer.length;
-        for (let index = opener.at + opener.length; index < closer.at; index += 1) {
-            if (source[index] === '\n') untouched.add(index);
+        formulas.push({ start: opener.at, end: closerEnd });
+        for (let index = opener.at; index < closerEnd; index += 1) {
+            if (source[index] === '\n') untouchedNewlines.add(index);
         }
         if (!startsLine(source, opener.at)) continue;
         const before = source.lastIndexOf('\n', opener.at - 1);
-        if (before >= start) untouched.add(before);
+        if (before >= start) untouchedNewlines.add(before);
         if (!endsLine(source, closerEnd)) continue;
         const after = source.indexOf('\n', closerEnd);
-        if (after !== -1 && after < end) untouched.add(after);
+        if (after !== -1 && after < end) untouchedNewlines.add(after);
     }
-    return untouched;
+    return { formulas, untouchedNewlines };
 };
+
+/** Whether an edit would rewrite part of a formula */
+export const touchesFormula = (math: LeafMath, edit: SourceEdit): boolean =>
+    math.formulas.some((formula) => edit.start < formula.end && edit.end > formula.start);

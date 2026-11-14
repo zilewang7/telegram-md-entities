@@ -13,6 +13,8 @@ import { parseMarkdown } from '../../render/parse';
 import type { SpoilerMode } from '../../render/spoiler/micromark-spoiler';
 import { isUnderscoreStrong } from '../../render/strong-delimiter';
 import { scanDetailsElement, type DetailsElement, type DetailsPiece } from './details-scan';
+import { leafMath, NO_MATH, touchesFormula, type LeafMath } from './display-math';
+import type { SourceSpan } from './dollar-runs';
 import { htmlValueEdits, type SpoilerSpanState } from './html-edits';
 import { loneDollarEdits } from './lone-dollars';
 import { softBreakEdits } from './soft-breaks';
@@ -31,6 +33,20 @@ interface CollectContext {
     edits: SourceEdit[];
 }
 
+/** What the inline content of one leaf block (paragraph, heading, cell) shares */
+interface LeafScope {
+    /** Spoiler-span pairing: the renderer flushes open tags at every block end */
+    spans: SpoilerSpanState;
+    /** Its '$$' formulas, which no edit may touch */
+    math: LeafMath;
+}
+
+const pushOutsideFormulas = (edits: readonly SourceEdit[], scope: LeafScope, ctx: CollectContext): void => {
+    for (const edit of edits) {
+        if (!touchesFormula(scope.math, edit)) ctx.edits.push(edit);
+    }
+};
+
 /**
  * Replace a delimiter-wrapped node's delimiters, keeping its content. The
  * opening delimiter is the run of the node's first character, up to its
@@ -38,7 +54,13 @@ interface CollectContext {
  * last child (a line's indentation between the two stays). Works for any
  * delimiter length.
  */
-const wrapDelimiters = (node: Parent, open: string, close: string, ctx: CollectContext): void => {
+const wrapDelimiters = (
+    node: Parent,
+    open: string,
+    close: string,
+    scope: LeafScope,
+    ctx: CollectContext
+): void => {
     const start = node.position?.start.offset;
     const end = node.position?.end.offset;
     const contentStart = node.children[0]?.position?.start.offset;
@@ -54,73 +76,97 @@ const wrapDelimiters = (node: Parent, open: string, close: string, ctx: CollectC
     let closeStart = end;
     while (closeStart > contentEnd && ctx.source[closeStart - 1] === closeChar) closeStart -= 1;
 
-    ctx.edits.push(
-        { start, end: openEnd, text: open },
-        { start: closeStart, end, text: close }
-    );
+    const opening = { start, end: openEnd, text: open };
+    const closing = { start: closeStart, end, text: close };
+    // A pair with a delimiter inside a formula is left alone as a whole
+    if (touchesFormula(scope.math, opening) || touchesFormula(scope.math, closing)) return;
+    ctx.edits.push(opening, closing);
 };
 
-const collectHtml = (node: Html, isBlock: boolean, spans: SpoilerSpanState, ctx: CollectContext): void => {
+const collectHtml = (node: Html, isBlock: boolean, scope: LeafScope, ctx: CollectContext): void => {
     const map = valueOffsetMap(ctx.source, node, node.value);
     if (map === null) return;
-    ctx.edits.push(...mapEdits(htmlValueEdits(node.value, isBlock, spans), map, node.value, ctx.source));
+    const edits = mapEdits(htmlValueEdits(node.value, isBlock, scope.spans), map, node.value, ctx.source);
+    pushOutsideFormulas(edits, scope, ctx);
 };
 
 /** Literal text: soft line breaks become hard ones, lone '$' are escaped */
-const collectText = (node: Text, ctx: CollectContext): void => {
+const collectText = (node: Text, scope: LeafScope, ctx: CollectContext): void => {
     const start = node.position?.start.offset;
     const end = node.position?.end.offset;
     if (start === undefined || end === undefined) return;
-    ctx.edits.push(...softBreakEdits(ctx.source, start, end), ...loneDollarEdits(ctx.source, start, end));
+    const edits = [
+        ...softBreakEdits(ctx.source, start, end, scope.math.untouchedNewlines),
+        ...loneDollarEdits(ctx.source, start, end),
+    ];
+    pushOutsideFormulas(edits, scope, ctx);
 };
 
 const collectPhrasing = (
     nodes: readonly PhrasingContent[],
-    spans: SpoilerSpanState,
+    scope: LeafScope,
     ctx: CollectContext
 ): void => {
     for (const node of nodes) {
         match(node)
             .with({ type: 'strong' }, (strong) => {
                 const underline = ctx.options.underline && isUnderscoreStrong(strong, ctx.source);
-                wrapDelimiters(strong, underline ? '<u>' : '<b>', underline ? '</u>' : '</b>', ctx);
-                collectPhrasing(strong.children, spans, ctx);
+                wrapDelimiters(strong, underline ? '<u>' : '<b>', underline ? '</u>' : '</b>', scope, ctx);
+                collectPhrasing(strong.children, scope, ctx);
             })
             .with({ type: 'emphasis' }, (emphasis) => {
-                wrapDelimiters(emphasis, '<i>', '</i>', ctx);
-                collectPhrasing(emphasis.children, spans, ctx);
+                wrapDelimiters(emphasis, '<i>', '</i>', scope, ctx);
+                collectPhrasing(emphasis.children, scope, ctx);
             })
             .with({ type: 'delete' }, (deleted) => {
-                wrapDelimiters(deleted, '<s>', '</s>', ctx);
-                collectPhrasing(deleted.children, spans, ctx);
+                wrapDelimiters(deleted, '<s>', '</s>', scope, ctx);
+                collectPhrasing(deleted.children, scope, ctx);
             })
             .with({ type: 'spoiler' }, (spoiler) => {
-                wrapDelimiters(spoiler, '<tg-spoiler>', '</tg-spoiler>', ctx);
-                collectPhrasing(spoiler.children, spans, ctx);
+                wrapDelimiters(spoiler, '<tg-spoiler>', '</tg-spoiler>', scope, ctx);
+                collectPhrasing(spoiler.children, scope, ctx);
             })
             .with({ type: 'link' }, { type: 'linkReference' }, (link) =>
-                collectPhrasing(link.children, spans, ctx)
+                collectPhrasing(link.children, scope, ctx)
             )
-            .with({ type: 'html' }, (html) => collectHtml(html, false, spans, ctx))
-            .with({ type: 'text' }, (text) => collectText(text, ctx))
+            .with({ type: 'html' }, (html) => collectHtml(html, false, scope, ctx))
+            .with({ type: 'text' }, (text) => collectText(text, scope, ctx))
             .otherwise(() => undefined);
     }
 };
 
-/** A fresh tag-pairing scope: the renderer flushes open tags at every block end */
-const newSpans = (): SpoilerSpanState => ({ open: 0 });
+/** Source ranges of the inline code under nodes: '$$' there is code, not math */
+const codeSpansOf = (nodes: readonly PhrasingContent[], found: SourceSpan[] = []): SourceSpan[] => {
+    for (const node of nodes) {
+        const start = node.position?.start.offset;
+        const end = node.position?.end.offset;
+        if (node.type === 'inlineCode' && start !== undefined && end !== undefined) found.push({ start, end });
+        if ('children' in node) codeSpansOf(node.children, found);
+    }
+    return found;
+};
+
+/** The shared scope of a leaf block's inline content */
+const leafScope = (leaf: Parent & { children: PhrasingContent[] }, ctx: CollectContext): LeafScope => {
+    const start = leaf.position?.start.offset;
+    const end = leaf.position?.end.offset;
+    const math =
+        start === undefined || end === undefined ? NO_MATH : leafMath(ctx.source, start, end, codeSpansOf(leaf.children));
+    return { spans: { open: 0 }, math };
+};
+
+const collectLeaf = (leaf: Parent & { children: PhrasingContent[] }, ctx: CollectContext): void =>
+    collectPhrasing(leaf.children, leafScope(leaf, ctx), ctx);
 
 const collectBlock = (node: RootContent, ctx: CollectContext): void => {
     match(node)
-        .with({ type: 'paragraph' }, { type: 'heading' }, (leaf) =>
-            collectPhrasing(leaf.children, newSpans(), ctx)
-        )
+        .with({ type: 'paragraph' }, { type: 'heading' }, (leaf) => collectLeaf(leaf, ctx))
         .with({ type: 'table' }, (table) => {
             for (const row of table.children) {
-                for (const cell of row.children) collectPhrasing(cell.children, newSpans(), ctx);
+                for (const cell of row.children) collectLeaf(cell, ctx);
             }
         })
-        .with({ type: 'html' }, (html) => collectHtml(html, true, newSpans(), ctx))
+        .with({ type: 'html' }, (html) => collectHtml(html, true, { spans: { open: 0 }, math: NO_MATH }, ctx))
         .with({ type: 'blockquote' }, { type: 'listItem' }, { type: 'footnoteDefinition' }, (container) =>
             collectSiblings(container.children, ctx)
         )
