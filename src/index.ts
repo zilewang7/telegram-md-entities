@@ -28,6 +28,9 @@ export { richBlocksToMarkdown } from './rich/rich-blocks-to-markdown';
 export { richTextToMarkdown, richTextToPlain } from './rich/rich-text-to-markdown';
 export { entitiesToMarkdown } from './rich/entities-to-markdown';
 export type { ReadableEntity, ReadableMessage } from './rich/entities-to-markdown';
+export { toRichMarkdown } from './rich/to-rich-markdown/to-rich-markdown';
+export type { RichMarkdownOptions } from './rich/to-rich-markdown/to-rich-markdown';
+export { toRichHtml } from './rich/to-rich-html/to-rich-html';
 export { styleSegments } from './rich/style-segments';
 export type { StyleSegment } from './rich/style-segments';
 export type {

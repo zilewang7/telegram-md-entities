@@ -48,6 +48,8 @@ entitiesToMarkdown(message)          // REVERSE: {text, entities} -> markdown (t
 richBlocksToMarkdown(blocks, opts?)  // REVERSE: Bot API 10.1–10.3 rich message blocks -> markdown
 richTextToMarkdown(richText)         // REVERSE: one RichText value (e.g. a 10.4 quote's rich_texts) -> inline markdown
 richTextToPlain(richText)            // REVERSE: one RichText value -> plain text
+toRichMarkdown(markdown, options?)   // RICH SEND: this dialect -> markdown for Telegram rich messages
+toRichHtml(message)                  // RICH SEND: {text, entities} -> rich-message HTML blocks
 styleSegments(message)               // per-char style runs: display-equivalence comparator
 ```
 
@@ -82,6 +84,22 @@ Bot API 10.3 blocks: an `expandable_blockquote` becomes `<details>…</details>`
 Input from a newer Bot API never throws: an unknown block renders its `text` and inner `blocks`, an unknown inline node its `text`, a malformed known block degrades the same way, and entries that are not objects are skipped.
 
 Both target this dialect on purpose: the forward parser is the referee, so reversibility is mechanically testable.
+
+### Rich messages (sending)
+
+A bot can also *send* rich messages (`sendRichMessage`, or `editMessageText` with `rich_message: { markdown }`): Telegram renders tables, headings and math natively. Its markdown is a different dialect, though — `__x__` is bold there, a loose `|| x ||` spoiler is not a spoiler, `<span class="tg-spoiler">` is dropped, CJK-adjacent `**` may stay literal, and raw HTML this package shows as text is interpreted. Two helpers bridge the gap:
+
+```ts
+const body = toRichMarkdown(llmOutput);                       // the model's answer
+const frame = toRichMarkdown(buffer, { streaming: true });    // a streaming frame
+const footer = toRichHtml(renderMarkdown('_— sources…_'));     // sections the bot builds as entities
+await bot.api.sendRichMessage(chatId, { markdown: `${body}\n\n${footer}` });
+```
+
+- `toRichMarkdown(markdown, { streaming?, underline?, spoilerMode? })` rewrites the source at the offsets this package's own parser reports: strong, emphasis, strikethrough and spoilers (every form) become `<b>`/`<u>`, `<i>`, `<s>`, `<tg-spoiler>` tags, and HTML this package shows literally (`List<String>`, unknown tags, comments) is escaped. Every other byte is kept — code, tables, math, links and escapes pass through. The referee: `renderMarkdown(toRichMarkdown(x))` shows the same text and styles as `renderMarkdown(x)` (inside raw HTML blocks the package does not decode `&lt;`, so there the escape targets Telegram). With `streaming`, the tail is repaired as in the streaming render and open HTML tags, `<pre>` blocks and `<details>` elements are closed, so a status line appended after a frame always starts outside every construct.
+- `toRichHtml({ text, entities })` turns a rendered message into HTML blocks that embed in a rich markdown document: quotes become `<blockquote>` / `<blockquote expandable>`, `pre` becomes `<pre>` (with `<code class="language-x">`), the text in between becomes `<p>` paragraphs; inline entities become `b i u s tg-spoiler code a` tags, newlines `<br>`. Only `<pre>` may contain a blank line, so each block stays one HTML block. Meant for what a bot already has as exact entities (a thinking quote, tool records, footers, status lines).
+
+Not rewritten on purpose: `$math$`, `==mark==` and `[^1]` footnotes reach Telegram as written — the native rendering is the point of rich messages.
 
 ## Encoded server behavior
 

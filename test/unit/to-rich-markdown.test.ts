@@ -1,0 +1,145 @@
+import { describe, expect, it } from 'vitest';
+import { renderMarkdown, styleSegments, toRichMarkdown } from '../../src/index';
+import type { RichMarkdownOptions } from '../../src/index';
+
+/** The rewrite must not change what the package itself shows */
+const expectSameDisplay = (markdown: string, options: RichMarkdownOptions = {}): string => {
+    const rich = toRichMarkdown(markdown, options);
+    const renderOptions = {
+        ...(options.underline !== undefined ? { underline: options.underline } : {}),
+        ...(options.spoilerMode !== undefined ? { spoilerMode: options.spoilerMode } : {}),
+    };
+    expect(styleSegments(renderMarkdown(rich, renderOptions))).toEqual(
+        styleSegments(renderMarkdown(markdown, renderOptions))
+    );
+    return rich;
+};
+
+describe('toRichMarkdown: delimiters become tags', () => {
+    it.each([
+        ['__u__ and **b**', '<u>u</u> and <b>b</b>'],
+        ['*i* and _i_', '<i>i</i> and <i>i</i>'],
+        ['~~s~~ and ~s~', '<s>s</s> and <s>s</s>'],
+        ['***both***', '<i><b>both</b></i>'],
+        ['___both___', '<i><u>both</u></i>'],
+        ['**a __b__ c**', '<b>a <u>b</u> c</b>'],
+        ['__**nested** ||s||__', '<u><b>nested</b> <tg-spoiler>s</tg-spoiler></u>'],
+        ['的**"重点"**后', '的<b>"重点"</b>后'],
+        ['||tight|| and || loose ||', '<tg-spoiler>tight</tg-spoiler> and <tg-spoiler> loose </tg-spoiler>'],
+        ['[__label__](https://a.com)', '[<u>label</u>](https://a.com)'],
+        ['# 标题 **粗**', '# 标题 <b>粗</b>'],
+        ['> 引用 **粗**\n>\n> - 列表 _斜_', '> 引用 <b>粗</b>\n>\n> - 列表 <i>斜</i>'],
+    ])('%j', (input, expected) => {
+        expect(expectSameDisplay(input)).toBe(expected);
+    });
+
+    it('underline: false writes __x__ as bold, like the renderer reads it', () => {
+        expect(expectSameDisplay('__b__ and **c**', { underline: false })).toBe('<b>b</b> and <b>c</b>');
+    });
+
+    it("spoilerMode 'strict' leaves a whitespace-padded spoiler literal", () => {
+        expect(expectSameDisplay('|| x || and ||y||', { spoilerMode: 'strict' })).toBe(
+            '|| x || and <tg-spoiler>y</tg-spoiler>'
+        );
+    });
+});
+
+describe('toRichMarkdown: everything else stays byte-identical', () => {
+    it.each([
+        ['code span', 'use `__init__` and `**x**`'],
+        ['fenced block', '```js\nconst a = **b** || __c__;\n```'],
+        ['indented code', 'para\n\n    **not bold**'],
+        ['escapes', '\\_\\_escaped\\_\\_ and \\*\\*x\\*\\*'],
+        ['intraword underscores', 'snake__case__name'],
+        ['autolink with underscores', 'https://a.com/__init__.py and <https://b.com/__x__>'],
+        ['table', '| a | b |\n| :-- | --: |\n| $x^2$ | `c` |'],
+        ['math and marks', 'price $5 and $10, $$E=mc^2$$, ==mark==, a==b, [^1]'],
+        ['links and images', '[label](https://a.com "title") ![alt **x**](https://a.com/i.png)'],
+        ['known html tags', 'a <b>b</b> <i>i</i> <code>c</code> <a href="https://a.com">l</a> <br/> x'],
+        ['html list block', '<ul>\n  <li><b>一</b>：说明</li>\n  <li>二</li>\n</ul>'],
+        ['pre html block', '<pre><code class="language-python">print("**hi**")</code></pre>'],
+        ['task list and hr', '- [x] done\n- [ ] todo\n\n---'],
+    ])('%s', (_name, input) => {
+        expect(expectSameDisplay(input)).toBe(input);
+    });
+
+    it('<details> keeps its tags; markdown inside is rewritten like the walker reads it', () => {
+        const input = '<details>\n<summary>__S__</summary>\n\n**body** ||sp||\n\n</details>\n\nafter **x**';
+        expect(expectSameDisplay(input)).toBe(
+            '<details>\n<summary><u>S</u></summary>\n\n<b>body</b> <tg-spoiler>sp</tg-spoiler>\n\n</details>\n\nafter <b>x</b>'
+        );
+    });
+
+    it('<details> on one line and inside a quote', () => {
+        expect(expectSameDisplay('<details><summary>一行</summary>内容 **紧跟**<br>下一行 _斜_</details>')).toBe(
+            '<details><summary>一行</summary>内容 <b>紧跟</b><br>下一行 <i>斜</i></details>'
+        );
+        expect(expectSameDisplay('> <details>\n> **a** <b>x</b>\n> </details>')).toBe(
+            '> <details>\n> <b>a</b> <b>x</b>\n> </details>'
+        );
+    });
+
+    it('a <pre> inside <details> stays opaque', () => {
+        const input = '<details>\n<pre>\n**x**\n</pre>\n</details>';
+        expect(expectSameDisplay(input)).toBe(input);
+    });
+});
+
+describe('toRichMarkdown: HTML the package shows literally is escaped', () => {
+    it('unknown inline tags, comments and declarations', () => {
+        expect(expectSameDisplay('List<String> and <notreal>x</notreal>')).toBe(
+            'List&lt;String> and &lt;notreal>x&lt;/notreal>'
+        );
+        expect(expectSameDisplay('a <!-- c --> b')).toBe('a &lt;!-- c --> b');
+        expect(expectSameDisplay('a <foo bar="*x*"> b *y*')).toBe('a &lt;foo bar="\\*x\\*"> b <i>y</i>');
+    });
+
+    it('<span class="tg-spoiler"> becomes <tg-spoiler>; other spans stay literal', () => {
+        expect(expectSameDisplay('<span class="tg-spoiler">x</span> <span>y</span> z</span>')).toBe(
+            '<tg-spoiler>x</tg-spoiler> &lt;span>y&lt;/span> z&lt;/span>'
+        );
+    });
+
+    it('spoiler spans pair per paragraph, like the renderer', () => {
+        expect(expectSameDisplay('<span class="tg-spoiler">a\n\nb</span>')).toBe(
+            '<tg-spoiler>a\n\nb&lt;/span>'
+        );
+    });
+
+    it('an html block led by an unknown tag turns into literal paragraph text', () => {
+        expect(expectSameDisplay('<div>**x** _y_</div>\n\npara')).toBe('&lt;div>\\*\\*x\\*\\* \\_y\\_&lt;/div>\n\npara');
+        expect(expectSameDisplay('- item\n  <div>\n  # b_c\n  </div>')).toBe(
+            '- item\n  &lt;div>\n  \\# b\\_c\n  &lt;/div>'
+        );
+    });
+
+    it('inside a kept html block only the tag opener is escaped (Telegram reads it as HTML)', () => {
+        // The package shows '&lt;' raw inside an html block, Telegram decodes
+        // it: the display referee cannot judge this one, so no expectSameDisplay
+        expect(toRichMarkdown('<ul>\n<li>List<String></li>\n</ul>')).toBe('<ul>\n<li>List&lt;String></li>\n</ul>');
+    });
+});
+
+describe('toRichMarkdown: streaming', () => {
+    it.each([
+        ['abc __und', 'abc <u>und</u>'],
+        ['x || spo', 'x <tg-spoiler> spo</tg-spoiler>'],
+        ['open **bol', 'open <b>bol</b>'],
+        ['```js\nconst a', '```js\nconst a\n```'],
+        ['see [li](https://exa', 'see li'],
+        ['a <b>bold', 'a <b>bold</b>'],
+        ['<pre>\ncode', '<pre>\ncode\n</pre>'],
+        ['<details>\n<summary>S</summary>\n\nbody', '<details>\n<summary>S</summary>\n\nbody\n</details>'],
+        ['<details>\n<summary>S</summary>\n\nhello <b', '<details>\n<summary>S</summary>\n\nhello \n</details>'],
+        ['这是||', '这是||'],
+        ['行内 `', '行内 `'],
+        ['~~', '~~'],
+    ])('%j', (input, expected) => {
+        expect(toRichMarkdown(input, { streaming: true })).toBe(expected);
+    });
+
+    it('a complete document passes through as in strict mode', () => {
+        const input = '**a** __b__ `c`\n\n```\nx\n```\n\n<details>\nd\n</details>';
+        expect(toRichMarkdown(input, { streaming: true })).toBe(toRichMarkdown(input));
+    });
+});
