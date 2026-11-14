@@ -201,6 +201,38 @@ describe('splitRawMarkdownAtNewline', () => {
         expect(head.startsWith('```js\n')).toBe(true);
         expect(rest.startsWith('```js\n')).toBe(true);
     });
+
+    it.each([
+        ['<pre>', '用 `<pre>` 标签保留格式。'],
+        ['<details>', '用 `<details>` 折叠，`<summary>` 写标题。'],
+        ['a span over two lines', '写成 `<pre>\n</b>` 也行。'],
+    ])('a tag written as code (%s) opens nothing', (_name, first) => {
+        const raw = `${first}\n\n第二段\n\n第三段`;
+        expect(splitRawMarkdownAtNewline(raw, 0, { repair: true })).toEqual({ head: `${first}\n\n第二段`, rest: '第三段' });
+        expect(splitRawMarkdownAtNewline(raw).head).toBe(`${first}\n\n第二段`);
+    });
+
+    it('backticks inside a raw <pre> block are text: its close is still found', () => {
+        const raw = '<pre>\n`\n</pre>\n\n第二段\n\n第三段';
+        expect(splitRawMarkdownAtNewline(raw).rest).toBe('第三段');
+    });
+
+    // A lone backtick is literal: what follows it is no code
+    it.each([
+        ['a <details> line after it', '按 ` 键可以打开控制台。\n<details>\n<summary>步骤</summary>\n\n1. 打开设置\n\n</details>\n\n后文。\n\n再一段'],
+        ['a </details> on the line after it', '<details>\n<summary>为什么</summary>\n用 ` 包裹行内代码。\n</details>\n\n第二段\n\n第三段'],
+        ['a one-line <details>', '<details><summary>S</summary>按 ` 键打开控制台</details>\n\n第二段\n\n第三段'],
+        ['a one-line <pre>', '<pre>a ` b</pre>\n\n第二段\n\n第三段'],
+    ])('a lone backtick hides no tag: %s', (_name, raw) => {
+        const lastParagraph = raw.slice(raw.lastIndexOf('\n\n') + 2);
+        expect(splitRawMarkdownAtNewline(raw, 0, { repair: true }).rest).toBe(lastParagraph);
+    });
+
+    it('a lone backtick in a <summary> keeps the summary for the continuation', () => {
+        const raw = '<details>\n<summary>按 ` 键</summary>\n正文第一行\n正文第二行\n\n更多正文\n\n再多一段';
+        const { rest } = splitRawMarkdownAtNewline(raw, 30, { repair: true });
+        expect(rest).toBe('<details>\n<summary>按 ` 键（续）</summary>\n\n再多一段');
+    });
 });
 
 describe('stray details/summary tags render silently', () => {

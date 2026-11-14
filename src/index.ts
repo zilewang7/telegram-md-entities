@@ -30,6 +30,7 @@ export { entitiesToMarkdown } from './rich/entities-to-markdown';
 export type { ReadableEntity, ReadableMessage } from './rich/entities-to-markdown';
 export { toRichMarkdown } from './rich/to-rich-markdown/to-rich-markdown';
 export type { RichMarkdownOptions } from './rich/to-rich-markdown/to-rich-markdown';
+export type { TextLink, TextLinkContext, TextLinker } from './rich/to-rich-markdown/text-links';
 export { toRichHtml } from './rich/to-rich-html/to-rich-html';
 export { styleSegments } from './rich/style-segments';
 export type { StyleSegment } from './rich/style-segments';

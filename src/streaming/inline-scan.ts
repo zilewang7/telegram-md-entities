@@ -103,7 +103,8 @@ export const scanInlineTail = (
         const char = text[i];
         if (char === undefined) break;
 
-        if (char === '\\') {
+        // Backslash escapes do not apply inside a code span: '`C:\dir\`' ends at its last backtick
+        if (char === '\\' && openCode === null) {
             i += 2;
             continue;
         }

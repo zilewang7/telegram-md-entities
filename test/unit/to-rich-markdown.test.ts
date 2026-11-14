@@ -1,7 +1,7 @@
 import * as fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { renderMarkdown, styleSegments, toRichMarkdown } from '../../src/index';
-import type { RichMarkdownOptions } from '../../src/index';
+import type { RichMarkdownOptions, TextLinker } from '../../src/index';
 
 /** The rewrite must not change what the package itself shows */
 const expectSameDisplay = (markdown: string, options: RichMarkdownOptions = {}): string => {
@@ -337,6 +337,172 @@ describe('toRichMarkdown: escaped block html keeps its lines', () => {
             '&lt;div>\\\n<b>粗</b>\n<ul>\n<li>a</li>\n</ul>\n&lt;/div>'
         );
     });
+
+    it.each([
+        ['a comment, then a paragraph line', '<!-- c -->\n后文', '&lt;!-- c -->\\\n后文'],
+        ['the same in a quote', '> <!-- c -->\n> 后文', '> &lt;!-- c -->\\\n> 后文'],
+        ['a declaration, then a paragraph line', '<!X y>\n后文', '&lt;!X y>\\\n后文'],
+    ])('a block that ends at its own line keeps the paragraph line after it apart: %s', (_name, input, expected) => {
+        const output = toRichMarkdown(input);
+        expect(output).toBe(expected);
+        sameLines(input, output);
+    });
+
+    it('a blank line after such a block needs no break', () => {
+        expect(toRichMarkdown('<!-- c -->\n\n后文')).toBe('&lt;!-- c -->\n\n后文');
+    });
+
+    // Measured: after a paragraph line '===' and '---' underline it into a
+    // heading, '2.' and an indented line continue it, and so does the line
+    // below a quote or list item that has no prefix of its own
+    it.each([
+        ['an = underline', '<!-- c -->\n===', '&lt;!-- c -->\n\n==='],
+        ['a - underline', '<!-- c -->\n---', '&lt;!-- c -->\n\n---'],
+        ['a list that starts at 2', '<!-- c -->\n2. 第二项', '&lt;!-- c -->\n\n2. 第二项'],
+        ['an indented code block', '<!-- c -->\n    code', '&lt;!-- c -->\n\n    code'],
+        ['a link definition', '<!-- c -->\n[x]: https://example.com', '&lt;!-- c -->\n\n[x]: https://example.com'],
+        ['another escaped block', '<!-- a -->\n<!-- b -->', '&lt;!-- a -->\n\n&lt;!-- b -->'],
+        ['the line after the quote it ends', '> <!-- c -->\n后文', '> &lt;!-- c -->\n\n后文'],
+        ['the line after the list item it ends', '- <!-- c -->\n后文', '- &lt;!-- c -->\n\n后文'],
+        ['an outer quote line after a nested quote', '> > <!-- c -->\n> 后文', '> > &lt;!-- c -->\n>\n> 后文'],
+    ])('what would continue an escaped block below it gets a blank line: %s', (_name, input, expected) => {
+        expect(expectSameDisplay(input)).toBe(expected);
+    });
+
+    it.each([
+        ['a list from 1', '<!-- c -->\n1. 第一项'],
+        ['a bullet list', '<!-- c -->\n- 项'],
+        ['the next list item', '- <!-- c -->\n- 下一项'],
+        ['an ATX heading', '<!-- c -->\n# 标题'],
+        ['a fence', '<!-- c -->\n```\nx\n```'],
+        ['a quote', '<!-- c -->\n> 引用'],
+        ['a *** break', '<!-- c -->\n***'],
+        ['a $$ block (a block to Telegram)', '<!-- c -->\n$$\nx\n$$'],
+        // A blank line here would make the tight list loose
+        ['a kept <pre> block', '- <!-- c -->\n  <pre>\n  x\n  </pre>'],
+    ])('a block that interrupts a paragraph needs nothing after an escaped block: %s', (_name, input) => {
+        expect(toRichMarkdown(input)).toBe(input.replace('<!--', '&lt;!--'));
+    });
+
+    it('a list whose first item starts empty cannot interrupt: it gets the blank line', () => {
+        expect(expectSameDisplay('<!-- c -->\n-\n  foo')).toBe('&lt;!-- c -->\n\n-\n  foo');
+    });
+
+    it.each([
+        ['a quote', '> 段落\n<!-- c -->', '> 段落\n\n&lt;!-- c -->'],
+        ['a list item', '- 段落\n<!-- c -->', '- 段落\n\n&lt;!-- c -->'],
+        ['a nested quote', '> > 段落\n> <!-- c -->', '> > 段落\n>\n> &lt;!-- c -->'],
+        ['a table (it would take the block in as a row)', '| a |\n| - |\n| x |\n<!-- c -->', '| a |\n| - |\n| x |\n\n&lt;!-- c -->'],
+    ])('an escaped block after the paragraph of %s that it is not in gets a blank line', (_name, input, expected) => {
+        expect(expectSameDisplay(input)).toBe(expected);
+    });
+});
+
+describe('toRichMarkdown: a hard break never joins a bare URL', () => {
+    it.each([
+        ['a ) the URL left out', '(https://a.b/c)\nnext', '(https://a.b/c)  \nnext'],
+        ['a ). the URL left out', '见 (https://a.b/c).\nnext', '见 (https://a.b/c).  \nnext'],
+    ])('%s before the line end: the two-space form, a backslash would join the URL', (_name, input, expected) => {
+        expect(expectSameDisplay(input)).toBe(expected);
+    });
+
+    it('text after a space ends the URL: the usual backslash', () => {
+        expect(expectSameDisplay('https://a.b/c 后\nnext')).toBe('https://a.b/c 后\\\nnext');
+    });
+});
+
+describe("toRichMarkdown: a '#' starting a paragraph line is no heading", () => {
+    // Telegram reads '#3 说得对' as a heading "3 说得对" (measured), this
+    // package as text
+    it.each([
+        ['a paragraph', '#3 说得对', '\\#3 说得对'],
+        ['a hashtag', '#标签 测试', '\\#标签 测试'],
+        ['two hashes', '##3 双井号', '\\##3 双井号'],
+        ['a continuation line', '前一行\n#3 在第二行', '前一行\\\n\\#3 在第二行'],
+        ['after a hard break', '前一行  \n#3 两空格换行后', '前一行  \n\\#3 两空格换行后'],
+        ['a list item', '- #3 列表项\n- 1. #4 编号', '- \\#3 列表项\n- 1. \\#4 编号'],
+        ['a quote', '> #3 引用\n> #4 第二行', '> \\#3 引用\\\n> \\#4 第二行'],
+        ['markdown inside <details>', '<details>\n<summary>S</summary>\n\n#3 正文\n\n</details>', '<details>\n<summary>S</summary>\n\n\\#3 正文\n\n</details>'],
+        // Measured: '#3 说得对\n---' is a heading "3 说得对" and a divider
+        ['a setext heading', '#3 说得对\n---', '\\#3 说得对\n---'],
+        ['a setext heading line', '前一行\n#3 第二行\n===', '前一行\\\n\\#3 第二行\n==='],
+    ])('%s', (_name, input, expected) => {
+        expect(expectSameDisplay(input)).toBe(expected);
+    });
+
+    it.each([
+        ['a # inside a line', '见 #3 说得对'],
+        ['a table cell', '| a | b |\n| --- | --- |\n| #3 | x |'],
+        ['a heading', '## #3 标题'],
+        ['an escaped #', '\\#3 已转义'],
+        ['code', '`#3`\n\n```\n#3\n```'],
+        ['a <summary> (HTML to Telegram)', '<details><summary>#3 标题</summary>内容</details>'],
+    ])('%s stays as written', (_name, input) => {
+        expect(expectSameDisplay(input)).toBe(input);
+    });
+});
+
+// Measured: Telegram reads a <summary>, and body text on the line of a tag,
+// as HTML text ('\$', '\#' and a '\' before a line end show there, a line
+// end is a space, <br> a line break); a body that starts on a line of its
+// own, and the lines after </details>, as markdown ('#3 …' is a heading)
+describe('toRichMarkdown: a <details> piece is markdown or HTML text to Telegram', () => {
+    it('a <summary> gets no markdown escape; its line end gets a <br>', () => {
+        expect(expectSameDisplay('<details><summary>a\nb $5 #3</summary>x</details>')).toBe(
+            '<details><summary>a<br>\nb $5 #3</summary>x</details>'
+        );
+        expect(expectSameDisplay('> <details><summary>a\n> b</summary>x</details>')).toBe(
+            '> <details><summary>a<br>\n> b</summary>x</details>'
+        );
+        // A literal tag in it is escaped as HTML only
+        expect(expectSameDisplay('<details><summary>use <foo> *x*</summary>x</details>')).toBe(
+            '<details><summary>use &lt;foo> <i>x</i></summary>x</details>'
+        );
+    });
+
+    it('a body on lines of its own is markdown: escapes, hard breaks, a line-start # escaped', () => {
+        expect(expectSameDisplay('<details>\n<summary>S</summary>\n#3 正文\n第二行 $5\n</details>')).toBe(
+            '<details>\n<summary>S</summary>\n\\#3 正文\\\n第二行 \\$5\n</details>'
+        );
+    });
+
+    it('body text on the line of a tag is HTML text, on its next lines too', () => {
+        expect(expectSameDisplay('<details><summary>S</summary>正文 $5 #3</details>')).toBe(
+            '<details><summary>S</summary>正文 $5 #3</details>'
+        );
+        // This package reads '<br>\n' in a body as two line breaks, so no
+        // display referee here; Telegram shows one (measured)
+        expect(toRichMarkdown('<details>\n<summary>S</summary>正文 $5\n第二行\n</details>')).toBe(
+            '<details>\n<summary>S</summary>正文 $5<br>\n第二行\n</details>'
+        );
+    });
+
+    it('the lines after </details> are markdown', () => {
+        expect(expectSameDisplay('<details>\n<summary>S</summary>\n正文\n</details>\n后文 $5\n#3 尾')).toBe(
+            '<details>\n<summary>S</summary>\n正文\n</details>\n后文 \\$5\\\n\\#3 尾'
+        );
+        // Text on the </details> line is HTML text (Telegram drops it there), the lines after it are not
+        expect(toRichMarkdown('<details>\n<summary>S</summary>\n正文\n</details> 后\n价格$5和$10之间\n#3 尾')).toBe(
+            '<details>\n<summary>S</summary>\n正文\n</details> 后\n价格\\$5和\\$10之间\\\n\\#3 尾'
+        );
+    });
+
+    it('a body block after a blank line starts its own line: markdown', () => {
+        expect(expectSameDisplay('<details>\n<summary>S</summary>\n\n<div>\nx $5 和 $6\n#3 y\n</div>\n\n</details>')).toBe(
+            '<details>\n<summary>S</summary>\n\n&lt;div>\\\nx \\$5 和 \\$6\\\n\\#3 y\\\n&lt;/div>\n\n</details>'
+        );
+        expect(expectSameDisplay('<details>\n<summary>S</summary>\n\n<!-- 注释 *星号* -->\n\n</details>')).toBe(
+            '<details>\n<summary>S</summary>\n\n&lt;!-- 注释 \\*星号\\* -->\n\n</details>'
+        );
+    });
+
+    it('links go into both', () => {
+        const linker: TextLinker = (text) =>
+            [...text.matchAll(/#\d/g)].map((match) => ({ offset: match.index ?? 0, length: 2, url: 'https://t.me/c/42/3' }));
+        expect(toRichMarkdown('<details><summary>见 #3</summary>\n#3 正文\n</details>', { textLinks: linker })).toBe(
+            '<details><summary>见 <a href="https://t.me/c/42/3">#3</a></summary>\n<a href="https://t.me/c/42/3">#3</a> 正文\n</details>'
+        );
+    });
 });
 
 describe('toRichMarkdown: streaming', () => {
@@ -360,5 +526,29 @@ describe('toRichMarkdown: streaming', () => {
     it('a complete document passes through as in strict mode', () => {
         const input = '**a** __b__ `c`\n\n```\nx\n```\n\n<details>\nd\n</details>';
         expect(toRichMarkdown(input, { streaming: true })).toBe(toRichMarkdown(input));
+    });
+
+    it('a code span ending in a backslash is closed by its last backtick (escapes do not apply in code)', () => {
+        const input = '见 `#1 C:\\dir\\` 后';
+        expect(renderMarkdown(input, { streaming: true })).toEqual(renderMarkdown(input));
+        expect(renderMarkdown('见 `#1 C:\\dir\\`', { streaming: true })).toEqual(renderMarkdown('见 `#1 C:\\dir\\`'));
+        expect(toRichMarkdown(input, { streaming: true })).toBe(toRichMarkdown(input));
+    });
+
+    it('a tag written as code closes nothing at the end of a frame', () => {
+        expect(toRichMarkdown('用 `<pre>` 和 `<details>` 写', { streaming: true })).toBe('用 `<pre>` 和 `<details>` 写');
+        // Nothing is open either, so a half-typed '<String' in code stays
+        expect(toRichMarkdown('用 `<details>` 和 `List<String', { streaming: true })).toBe(
+            '用 `<details>` 和 `List<String`'
+        );
+    });
+
+    it('a lone backtick before a <details> hides nothing: every frame inside the fold closes it', () => {
+        const source = '按 ` 键可以打开控制台。\n<details>\n<summary>步骤</summary>\n\n1. 打开设置\n2. 选择键位\n\n</details>\n\n后文。';
+        const foldStart = source.indexOf('<details>') + '<details>'.length;
+        const foldEnd = source.indexOf('</details>');
+        for (let cut = foldStart; cut < foldEnd; cut += 1) {
+            expect(toRichMarkdown(source.slice(0, cut), { streaming: true }).endsWith('</details>'), `@${cut}`).toBe(true);
+        }
     });
 });

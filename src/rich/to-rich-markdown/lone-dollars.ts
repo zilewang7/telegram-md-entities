@@ -9,7 +9,7 @@
  * the result does not depend on how Telegram pairs. '$$' runs are left as
  * written; they still count as the next '$'.
  */
-import { dollarRuns } from './dollar-runs';
+import { dollarRuns, type SourceSpan } from './dollar-runs';
 import type { SourceEdit } from './source-edits';
 
 const isWhitespace = (char: string | undefined): boolean => char === undefined || /\s/.test(char);
@@ -24,9 +24,17 @@ const isFormula = (source: string, opener: number, closer: number, end: number):
     !isWhitespace(source[closer - 1]) &&
     !(closer + 1 < end && isDigit(source[closer + 1]));
 
-export const loneDollarEdits = (source: string, start: number, end: number): SourceEdit[] => {
+export interface LoneDollarRewrite {
+    /** A backslash for every '$' that is not part of a kept formula */
+    edits: SourceEdit[];
+    /** The kept '$…$' formulas, both '$' included: math to Telegram */
+    formulas: SourceSpan[];
+}
+
+export const loneDollarRewrite = (source: string, start: number, end: number): LoneDollarRewrite => {
     const runs = dollarRuns(source, start, end);
     const edits: SourceEdit[] = [];
+    const formulas: SourceSpan[] = [];
     let index = 0;
     while (index < runs.length) {
         const current = runs[index];
@@ -37,11 +45,12 @@ export const loneDollarEdits = (source: string, start: number, end: number): Sou
         }
         const next = runs[index + 1];
         if (next !== undefined && next.length === 1 && isFormula(source, current.at, next.at, end)) {
+            formulas.push({ start: current.at, end: next.at + 1 });
             index += 2;
             continue;
         }
         edits.push({ start: current.at, end: current.at + 1, text: '\\$' });
         index += 1;
     }
-    return edits;
+    return { edits, formulas };
 };

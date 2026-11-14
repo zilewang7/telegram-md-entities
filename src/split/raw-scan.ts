@@ -8,6 +8,7 @@
  */
 import { FENCE_LINE, LEAF_RESET, QUOTE_PREFIX } from '../streaming/block-scan';
 import { scanInlineTail } from '../streaming/inline-scan';
+import { codeSpanMasker } from './code-spans';
 
 export interface OpenFenceInfo {
     /** The full opening fence sequence, e.g. '```' */
@@ -136,13 +137,16 @@ export const scanRawCut = (raw: string, cut: number): RawCutState => {
     let blockTags: string[] = [];
     let inlineTags: string[] = [];
     let leafBlockStart = 0;
+    // A tag written as code opens nothing: the tag scan sees code spans blanked
+    const maskCodeSpans = codeSpanMasker(raw, lines);
 
-    const scanTagsInLine = (text: string): void => {
+    /** `tagText`: the line as the tag scan sees it (code spans masked) */
+    const scanTagsInLine = (text: string, tagText: string): void => {
         const top = (): DetailsFrame | undefined => detailsStack[detailsStack.length - 1];
         // Summary capture may have started on a previous line
         let summaryFrom = top()?.capturingSummary ? 0 : -1;
         const scanner = new RegExp(TRACKED_TAG.source, 'gi');
-        let matched = scanner.exec(text);
+        let matched = scanner.exec(tagText);
         while (matched !== null) {
             const closing = matched[1] === '/';
             const selfClosing = matched[3] === '/';
@@ -182,7 +186,7 @@ export const scanRawCut = (raw: string, cut: number): RawCutState => {
                     inlineTags.push(name);
                 }
             }
-            matched = scanner.exec(text);
+            matched = scanner.exec(tagText);
         }
         const frame = top();
         if (frame?.capturingSummary) {
@@ -244,7 +248,8 @@ export const scanRawCut = (raw: string, cut: number): RawCutState => {
             }
         }
 
-        scanTagsInLine(text);
+        // A raw <pre> block may run past blank lines: a backtick there is text
+        scanTagsInLine(text, blockTags.includes('pre') ? text : maskCodeSpans(index, text));
 
         if (stripped.trim() === '') {
             leafBlockStart = nextLineStart;

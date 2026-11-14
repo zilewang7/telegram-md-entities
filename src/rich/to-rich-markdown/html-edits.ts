@@ -11,6 +11,7 @@
  */
 import { isKnownCloseTag, readOpenTag, tokenizeHtml, type HtmlToken } from '../../render/html-tags';
 import { literalEscapeEdits, type SoftBreakTest } from './literal-escape';
+import type { PieceReading } from './piece-reading';
 import type { SourceEdit } from './source-edits';
 
 /** Open spoiler spans of the current leaf block (the renderer's pairing scope) */
@@ -22,9 +23,10 @@ export interface SpoilerSpanState {
  * Where the html sits, which decides how a literal piece is escaped:
  * - 'inline': an inline html node in a paragraph; an escaped piece becomes
  *   paragraph text, so it gets the full literal escape;
- * - 'block': an html block that stays one (its first tag is kept); the
- *   content is HTML to Telegram, so only the '<' of a literal piece is
- *   escaped, as an HTML entity.
+ * - 'block': an html block that stays one (its first tag is kept), or any
+ *   html in a piece Telegram reads as HTML text (a <summary>); the content
+ *   is HTML to Telegram, so only the '<' of a literal piece is escaped, as
+ *   an HTML entity.
  * An html block whose first tag is escaped stops being a block and turns
  * into a paragraph: it is then rewritten like 'inline' throughout.
  */
@@ -150,18 +152,22 @@ export interface HtmlRewrite {
 
 /**
  * Edits for one html node. `spans` carries the spoiler span pairing across
- * the inline html nodes of one leaf block.
+ * the inline html nodes of one leaf block. In a piece Telegram reads as
+ * HTML text (`reading` 'html') a literal piece is escaped as HTML, as in a
+ * kept block: a backslash would show there.
  */
 export const htmlValueEdits = (
     value: string,
     isBlock: boolean,
-    spans: SpoilerSpanState
+    spans: SpoilerSpanState,
+    reading: PieceReading
 ): HtmlRewrite => {
     const decisions: TokenDecision[] = placeTokens(value).map((placed) => ({
         placed,
         rewrite: placed.token.kind === 'tag' ? rewriteTag(placed.token, spans) : null,
     }));
-    const context: HtmlContext = isBlock && staysHtmlBlock(decisions) ? 'block' : 'inline';
+    const context: HtmlContext =
+        reading === 'html' || (isBlock && staysHtmlBlock(decisions)) ? 'block' : 'inline';
     const staysSoft = softBreakTest(value, decisions);
 
     const edits = decisions.flatMap(({ placed, rewrite }): SourceEdit[] => {
