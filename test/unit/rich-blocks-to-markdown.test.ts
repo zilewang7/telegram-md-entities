@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderMarkdown, richBlocksToMarkdown, validateMessage } from '../../src/index';
+import { renderMarkdown, richBlocksToMarkdown, richTextToPlain, validateMessage } from '../../src/index';
 import type { RichBlockNode } from '../../src/index';
 
 /** Re-parse referee: output must render into a valid message */
@@ -202,5 +202,177 @@ describe('richBlocksToMarkdown', () => {
         ]);
         expect(markdown).toBe(' **前后有空格** 尾巴');
         expect(entityTypes(rendered)).toContain('bold');
+    });
+});
+
+describe('richBlocksToMarkdown: Bot API 10.3 blocks', () => {
+    it('expandable_blockquote becomes <details> without a summary, credit last', () => {
+        const { markdown, rendered } = roundTrip([
+            {
+                type: 'expandable_blockquote',
+                text: ['第一行\n第二行 ', { type: 'bold', text: '粗' }],
+                credit: '某人',
+            },
+        ]);
+        expect(markdown).toBe('<details>\n第一行\n第二行 **粗**\n— 某人\n</details>');
+        expect(rendered.text).toBe('第一行\n第二行 粗\n— 某人');
+        expect(entityTypes(rendered)).toEqual(expect.arrayContaining(['expandable_blockquote', 'bold']));
+    });
+
+    it('expandable_blockquote with a blank line inside, then a paragraph', () => {
+        const { markdown, rendered } = roundTrip([
+            { type: 'expandable_blockquote', text: 'a\n\nb' },
+            { type: 'paragraph', text: 'after' },
+        ]);
+        expect(markdown).toBe('<details>\na\n\nb\n</details>\n\nafter');
+        const quote = rendered.entities.find((entity) => entity.type === 'expandable_blockquote');
+        expect(quote && rendered.text.slice(quote.offset, quote.offset + quote.length)).toBe('a\n\nb');
+        expect(rendered.text.endsWith('after')).toBe(true);
+    });
+
+    it('expandable_blockquote inside a list item and inside a blockquote', () => {
+        const { markdown, rendered } = roundTrip([
+            { type: 'list', items: [{ label: '•', blocks: [{ type: 'expandable_blockquote', text: '藏' }] }] },
+            { type: 'blockquote', blocks: [{ type: 'expandable_blockquote', text: '套' }] },
+        ]);
+        expect(markdown).toBe('- <details>\n  藏\n  </details>\n\n> <details>\n> 套\n> </details>');
+        expect(rendered.text).toContain('藏');
+        expect(rendered.text).toContain('套');
+    });
+
+    it('expandable_blockquote text that looks like markup stays literal', () => {
+        const { rendered } = roundTrip([
+            { type: 'expandable_blockquote', text: '</details> *x* # y' },
+        ]);
+        expect(rendered.text).toBe('</details> *x* # y');
+        expect(entityTypes(rendered)).toEqual(['expandable_blockquote']);
+    });
+
+    it('an empty expandable_blockquote renders nothing', () => {
+        expect(richBlocksToMarkdown([{ type: 'expandable_blockquote', text: '' }])).toBe('');
+    });
+
+    it('document: label, escaped file name, caption; no name gives the label alone', () => {
+        const { markdown, rendered } = roundTrip([
+            { type: 'document', document: { file_name: 'report_[v2].pdf' }, caption: { text: '周报' } },
+            { type: 'document', document: {} },
+        ]);
+        expect(markdown).toBe('[文件] report\\_\\[v2\\].pdf 周报\n\n[文件]');
+        expect(rendered.text).toBe('[文件] report_[v2].pdf 周报\n\n[文件]');
+    });
+
+    it('buttons row: url buttons keep the link, others their label (custom emoji alt)', () => {
+        const { markdown, rendered } = roundTrip([
+            {
+                type: 'buttons',
+                buttons: [
+                    { text: '打开', url: 'https://t.me' },
+                    { text: ['签到 ', { type: 'custom_emoji', custom_emoji_id: '5', alternative_text: '👍' }] },
+                ],
+            },
+        ]);
+        expect(markdown).toBe('[按钮] [打开](https://t.me) · 签到 👍');
+        expect(rendered.text).toBe('[按钮] 打开 · 签到 👍');
+        expect(entityTypes(rendered)).toEqual(['text_link']);
+    });
+
+    it('a buttons row without labels renders nothing', () => {
+        expect(richBlocksToMarkdown([{ type: 'buttons', buttons: [{ text: '' }] }])).toBe('');
+    });
+
+    it('inline url and callback buttons', () => {
+        const { markdown } = roundTrip([
+            {
+                type: 'paragraph',
+                text: [
+                    { type: 'button', button: { text: '这里', url: 'https://example.com' } },
+                    ' ',
+                    { type: 'button', button: { text: '回调' } },
+                ],
+            },
+        ]);
+        expect(markdown).toBe('[这里](https://example.com) 回调');
+    });
+
+    it('richTextToPlain flattens an inline button to its label', () => {
+        expect(richTextToPlain(['a ', { type: 'button', button: { text: ['b', { type: 'bold', text: 'c' }] } }])).toBe('a bc');
+    });
+
+    it('ton_address passes its text through', () => {
+        const { markdown } = roundTrip([
+            { type: 'paragraph', text: ['钱包 ', { type: 'ton_address', text: 'EQx_1' }] },
+        ]);
+        expect(markdown).toBe('钱包 EQx\\_1');
+    });
+
+    it('custom mediaPlaceholder receives the document file name', () => {
+        const calls: unknown[] = [];
+        const markdown = richBlocksToMarkdown(
+            [
+                { type: 'document', document: { file_name: 'a.zip' }, caption: { text: 'c' } },
+                { type: 'photo' },
+            ],
+            {
+                mediaPlaceholder: (kind, caption, details) => {
+                    calls.push([kind, caption, details]);
+                    return `<${kind}>`;
+                },
+            }
+        );
+        expect(calls).toEqual([
+            ['document', 'c', { fileName: 'a.zip' }],
+            ['photo', '', {}],
+        ]);
+        expect(markdown).toBe('<document>\n\n<photo>');
+    });
+
+    it('slideshow renders its blocks and caption like a collage', () => {
+        const { markdown } = roundTrip([
+            {
+                type: 'slideshow',
+                blocks: [{ type: 'photo' }, { type: 'paragraph', text: '幻灯' }],
+                caption: { text: '说明' },
+            },
+        ]);
+        expect(markdown).toBe('[图片]\n\n幻灯\n说明');
+    });
+});
+
+describe('richBlocksToMarkdown: input from a newer Bot API never throws', () => {
+    it('unknown blocks keep their text and inner blocks; non-objects are skipped', () => {
+        const blocks = JSON.parse(
+            JSON.stringify([
+                { type: 'future_block', text: '未来文本' },
+                { type: 'future_container', blocks: [{ type: 'paragraph', text: '内层' }] },
+                { type: 'future_empty' },
+                { type: 'paragraph', text: ['a', { type: 'future_inline', payload: 1 }, { type: 'ton_address', text: 'EQx', address: 'EQx' }] },
+                null,
+                42,
+                'text',
+                [{ type: 'paragraph', text: 'nested array' }],
+                { no_type: true, text: '无类型' },
+            ])
+        );
+        expect(richBlocksToMarkdown(blocks)).toBe('未来文本\n\n内层\n\naEQx\n\n无类型');
+    });
+
+    it('an inline node without text renders nothing instead of throwing', () => {
+        const blocks = JSON.parse(
+            '[{"type":"paragraph","text":["x",{"type":"future_inline"},{"type":"button"},{"type":"button","button":5},{"type":"url","text":"u"},{"type":"text_mention","text":"m"}]}]'
+        );
+        expect(richBlocksToMarkdown(blocks)).toBe('xum');
+        expect(richTextToPlain(JSON.parse('[{"type":"button"},{"type":"custom_emoji"},null,7]'))).toBe('');
+    });
+
+    it('a malformed known block degrades to its text', () => {
+        const blocks = JSON.parse(
+            '[{"type":"list","text":"列表文本"},{"type":"table","cells":5},{"type":"heading","size":99,"text":"标题"},{"type":"map","caption":{"text":"c"}},{"type":"document"}]'
+        );
+        expect(richBlocksToMarkdown(blocks)).toBe('列表文本\n\n# 标题\n\n[文件]');
+    });
+
+    it('a non-array blocks value gives an empty string', () => {
+        expect(richBlocksToMarkdown(JSON.parse('null'))).toBe('');
+        expect(richBlocksToMarkdown(JSON.parse('{"type":"paragraph","text":"x"}'))).toBe('');
     });
 });

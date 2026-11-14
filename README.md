@@ -45,7 +45,9 @@ wrapInBlockquote(message, expandable?) // e.g. LLM "thinking" sections (block-fr
 withoutBlockEntities(message)        // drop block entities, keep their text
 concatMessages(...parts)             // compose with automatic entity re-offsetting
 entitiesToMarkdown(message)          // REVERSE: {text, entities} -> markdown (this dialect)
-richBlocksToMarkdown(blocks, opts?)  // REVERSE: Bot API 10.1+ rich message blocks -> markdown
+richBlocksToMarkdown(blocks, opts?)  // REVERSE: Bot API 10.1–10.3 rich message blocks -> markdown
+richTextToMarkdown(richText)         // REVERSE: one RichText value (e.g. a 10.4 quote's rich_texts) -> inline markdown
+richTextToPlain(richText)            // REVERSE: one RichText value -> plain text
 styleSegments(message)               // per-char style runs: display-equivalence comparator
 ```
 
@@ -73,7 +75,11 @@ GFM (tables, strikethrough, task lists, autolinks) + `||spoiler||` (loose Telegr
 
 `entitiesToMarkdown({ text, entities })` converts a received Telegram message back to markdown in this package's own input dialect — overlapping / server-split entities are flattened into per-character style runs and rebuilt as strictly nested markers with close-and-reopen at boundaries. Server auto-detections (`url`, `mention`, `hashtag`, `custom_emoji`, …) pass through as plain text; `text_mention` becomes a `tg://user?id=` link. The acceptance rule is round-trip display equivalence: `renderMarkdown(entitiesToMarkdown(msg))` covers each character with the same styles as the original. Known lossy edges: 3+ consecutive newlines collapse, a paragraph directly after a quote gains a blank line, code is opaque (styles on code characters split around it), and one-way sugar (headings, tables, lists) is never inferred back.
 
-`richBlocksToMarkdown(blocks)` converts Bot API 10.1+ rich messages (`message.rich_message.blocks`, the Premium rich-text editor format) to markdown: headings → `#`, tables → GFM pipes, `details` → `<details>`, pre → fenced code, LaTeX blocks → ```latex fences, embedded media → text placeholders (customizable via `mediaPlaceholder`). Types are structural — pass grammy's `RichBlock[]` straight in.
+`richBlocksToMarkdown(blocks)` converts Bot API 10.1–10.3 rich messages (`message.rich_message.blocks`, the Premium rich-text editor format) to markdown: headings → `#`, tables → GFM pipes, `details` → `<details>`, pre → fenced code, LaTeX blocks → ```latex fences, embedded media → text placeholders (customizable via `mediaPlaceholder`). Types are structural — pass grammy's `RichBlock[]` straight in (both the 10.2 and the 10.3 shapes; Bot API 10.4's `ton_address` inline is included). `richTextToMarkdown(richText)` does the same for a single `RichText` value, e.g. the 10.4 `TextQuote.rich_texts` of a quote taken from a rich message.
+
+Bot API 10.3 blocks: an `expandable_blockquote` becomes `<details>…</details>` without a summary (credit as a last `— credit` line), the form `entitiesToMarkdown` gives an expandable quote entity; a `document` becomes `[文件] file-name caption` (`mediaPlaceholder` receives `('document', caption, { fileName })`); a `buttons` row becomes `[按钮] [label](url) · label` (url buttons keep their link, callback / web app / login / copy buttons their label); an inline `button` becomes a link or its label.
+
+Input from a newer Bot API never throws: an unknown block renders its `text` and inner `blocks`, an unknown inline node its `text`, a malformed known block degrades the same way, and entries that are not objects are skipped.
 
 Both target this dialect on purpose: the forward parser is the referee, so reversibility is mechanically testable.
 

@@ -1,8 +1,12 @@
 /**
- * Structural types for Bot API 10.1+ rich messages (Message.rich_message).
- * Defined locally so the package stays dependency-free; they are shape-
- * compatible with grammy/@grammyjs/types RichBlock/RichText — callers pass
- * those straight in.
+ * Structural types for Bot API 10.1–10.3 rich messages (Message.rich_message),
+ * plus the 10.4 ton_address inline. Defined locally so the package stays
+ * dependency-free; they are shape-compatible with grammy/@grammyjs/types
+ * RichBlock/RichText — callers pass those straight in.
+ *
+ * The unions stay closed (a mistyped shape is a compile error), so every
+ * new Bot API type is added here; at runtime the renderers are lenient and
+ * degrade unknown types to their text instead of throwing.
  */
 
 export interface RichTextStyled {
@@ -60,8 +64,25 @@ export interface RichTextPassthrough {
         | 'date_time'
         | 'anchor_link'
         | 'reference'
-        | 'reference_link';
+        | 'reference_link'
+        | 'ton_address';
     text: RichTextNode;
+}
+
+/**
+ * Bot API 10.3 RichMessageButton. Every button kind (url, callback_data,
+ * web_app, login_url, copy_text…) carries a label; only a url is a target
+ * worth keeping in text, the other kinds are bot internals.
+ */
+export interface RichMessageButtonNode {
+    text: RichTextNode;
+    url?: string;
+}
+
+/** Bot API 10.3 inline button: no `text` field, the label sits on the button */
+export interface RichTextButton {
+    type: 'button';
+    button: RichMessageButtonNode;
 }
 
 export type RichTextNode =
@@ -73,7 +94,8 @@ export type RichTextNode =
     | RichTextCustomEmoji
     | RichTextMathematicalExpression
     | RichTextAnchor
-    | RichTextPassthrough;
+    | RichTextPassthrough
+    | RichTextButton;
 
 export interface RichBlockCaption {
     text: RichTextNode;
@@ -155,6 +177,8 @@ export interface RichBlockTable {
     type: 'table';
     cells: RichBlockTableCell[][];
     caption?: RichTextNode;
+    /** Bot API 10.3; no markdown equivalent, ignored */
+    is_compact?: true;
 }
 
 export interface RichBlockDetails {
@@ -185,6 +209,27 @@ export interface RichBlockThinking {
     type: 'thinking';
 }
 
+/** Bot API 10.3: a collapsed quote of inline text (no nested blocks) */
+export interface RichBlockExpandableBlockQuotation {
+    type: 'expandable_blockquote';
+    text: RichTextNode;
+    credit?: RichTextNode;
+}
+
+/** Bot API 10.3: an attached file; only the name matters for text */
+export interface RichBlockDocument {
+    type: 'document';
+    document: { file_name?: string; mime_type?: string };
+    caption?: RichBlockCaption;
+}
+
+/** Bot API 10.3: a row of buttons inside the message body */
+export interface RichBlockButtons {
+    type: 'buttons';
+    buttons: RichMessageButtonNode[];
+    align?: 'left' | 'center' | 'right';
+}
+
 export type RichBlockNode =
     | RichBlockParagraph
     | RichBlockHeading
@@ -201,16 +246,26 @@ export type RichBlockNode =
     | RichBlockCollage
     | RichBlockMap
     | RichBlockMedia
-    | RichBlockThinking;
+    | RichBlockThinking
+    | RichBlockExpandableBlockQuotation
+    | RichBlockDocument
+    | RichBlockButtons;
 
 /** Media-ish block kinds a placeholder is emitted for */
-export type RichMediaKind = RichBlockMedia['type'] | 'map';
+export type RichMediaKind = RichBlockMedia['type'] | 'document' | 'map';
+
+/** Extra facts about a media block, for custom placeholders */
+export interface RichMediaDetails {
+    /** document only: the file name, when the sender's client kept one */
+    fileName?: string;
+}
 
 export interface RichBlocksToMarkdownOptions {
     /**
-     * Custom placeholder for embedded media blocks. Receives the block kind
-     * and its (already plain-text) caption; returns the text to emit.
-     * Default: `[图片] caption` style placeholders.
+     * Custom placeholder for embedded media blocks. Receives the block kind,
+     * its (already plain-text) caption and details such as a document's file
+     * name; returns the text to emit. Two-parameter callbacks still fit.
+     * Default: `[图片] caption` / `[文件] name caption` style placeholders.
      */
-    mediaPlaceholder?: (kind: RichMediaKind, caption: string) => string;
+    mediaPlaceholder?: (kind: RichMediaKind, caption: string, details: RichMediaDetails) => string;
 }

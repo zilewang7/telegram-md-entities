@@ -4,11 +4,16 @@
  * this is a straight recursive walk. Styles already active on the path are
  * not re-wrapped — nested duplicate markers would break the re-parse.
  *
+ * Lenient on purpose: the server adds inline types over time (10.3 button
+ * has no `text`), so a node of an unknown or malformed shape renders its
+ * `text` when that is rich text, else nothing — never a TypeError.
+ *
  * (Plain switch instead of ts-pattern here: the recursive RichTextNode
  * union blows past TS's instantiation depth inside match().)
  */
 import { escapeMarkdownText, escapeMarkdownUrl, wrapInlineCode } from './escape-markdown';
-import type { RichTextNode, RichTextStyled } from './rich-types';
+import { isRecord, isRichTextLike } from './rich-guards';
+import type { RichMessageButtonNode, RichTextNode, RichTextStyled } from './rich-types';
 
 type StyleKey = RichTextStyled['type'];
 
@@ -53,20 +58,61 @@ const renderStyled = (node: RichTextStyled, context: InlineContext): string => {
     return wrapWithMarker(marker, renderRichText(node.text, nextContext));
 };
 
+/** The `text` of a node the renderer has no case for, when it is rich text */
+const fallbackText = (node: object): RichTextNode | undefined => {
+    const text: unknown = 'text' in node ? node.text : undefined;
+    return isRichTextLike(text) ? text : undefined;
+};
+
+/** A button's label; a malformed button (no object) has none */
+const buttonLabel = (button: unknown): RichTextNode =>
+    isRecord(button) && isRichTextLike(button.text) ? button.text : '';
+
+const stringOrEmpty = (value: unknown): string => (typeof value === 'string' ? value : '');
+
 /** Recursively flatten a RichText node to plain text (no markdown) */
 export const richTextToPlain = (node: RichTextNode): string => {
     if (typeof node === 'string') return node;
     if (Array.isArray(node)) return node.map(richTextToPlain).join('');
+    if (!isRecord(node)) return '';
     switch (node.type) {
         case 'custom_emoji':
-            return node.alternative_text;
+            return stringOrEmpty(node.alternative_text);
         case 'mathematical_expression':
-            return node.expression;
+            return stringOrEmpty(node.expression);
         case 'anchor':
             return '';
-        default:
-            return richTextToPlain(node.text);
+        case 'button':
+            return richTextToPlain(buttonLabel(node.button));
+        default: {
+            const text = fallbackText(node);
+            return text === undefined ? '' : richTextToPlain(text);
+        }
     }
+};
+
+/**
+ * A button label: a link when the button opens a url, else the label alone
+ * (callback, web app, login and copy buttons are bot internals).
+ */
+export const renderButtonLabel = (
+    button: RichMessageButtonNode,
+    context: InlineContext = EMPTY_CONTEXT
+): string => {
+    const label = renderRichText(buttonLabel(button), context);
+    const url = isRecord(button) ? button.url : undefined;
+    return typeof url === 'string' && label.trim().length > 0
+        ? `[${label}](${escapeMarkdownUrl(url)})`
+        : label;
+};
+
+const renderTextMention = (
+    node: { text: RichTextNode; user: { id: number } },
+    context: InlineContext
+): string => {
+    const label = renderRichText(node.text, context);
+    const userId: unknown = isRecord(node.user) ? node.user.id : undefined;
+    return typeof userId === 'number' ? `[${label}](tg://user?id=${userId})` : label;
 };
 
 export const renderRichText = (
@@ -77,6 +123,7 @@ export const renderRichText = (
     if (Array.isArray(node)) {
         return node.map((child) => renderRichText(child, context)).join('');
     }
+    if (!isRecord(node)) return '';
     switch (node.type) {
         case 'bold':
         case 'italic':
@@ -91,20 +138,33 @@ export const renderRichText = (
             return wrapInlineCode(richTextToPlain(node.text));
         case 'url': {
             const label = renderRichText(node.text, context);
-            return label.trim().length > 0
+            return typeof node.url === 'string' && label.trim().length > 0
                 ? `[${label}](${escapeMarkdownUrl(node.url)})`
                 : label;
         }
         case 'text_mention':
-            return `[${renderRichText(node.text, context)}](tg://user?id=${node.user.id})`;
+            return renderTextMention(node, context);
         case 'custom_emoji':
-            return escapeMarkdownText(node.alternative_text);
+            return escapeMarkdownText(stringOrEmpty(node.alternative_text));
         case 'mathematical_expression':
-            return wrapInlineCode(node.expression);
+            return wrapInlineCode(stringOrEmpty(node.expression));
         case 'anchor':
             return '';
-        default:
-            // mention/hashtag/email/date_time/anchor_link/reference…: text through
-            return renderRichText(node.text, context);
+        case 'button':
+            return renderButtonLabel(node.button, context);
+        default: {
+            // mention/hashtag/email/date_time/ton_address/reference…, and any
+            // type a later Bot API adds: the text passes through
+            const text = fallbackText(node);
+            return text === undefined ? '' : renderRichText(text, context);
+        }
     }
 };
+
+/**
+ * Convert a RichText value (a paragraph's text, a quote's text, Bot API
+ * 10.4 TextQuote.rich_texts entries…) to inline markdown in this package's
+ * input dialect. renderMarkdown of the result shows the same text and
+ * styles. Never throws, whatever the input shape.
+ */
+export const richTextToMarkdown = (richText: RichTextNode): string => renderRichText(richText);

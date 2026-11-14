@@ -25,7 +25,7 @@ export { TELEGRAM_PREVIEW_CSS } from './preview/styles';
 export { wrapInBlockquote, withoutBlockEntities } from './compose/wrap-in-blockquote';
 export { concatMessages } from './compose/concat-messages';
 export { richBlocksToMarkdown } from './rich/rich-blocks-to-markdown';
-export { richTextToPlain } from './rich/rich-text-to-markdown';
+export { richTextToMarkdown, richTextToPlain } from './rich/rich-text-to-markdown';
 export { entitiesToMarkdown } from './rich/entities-to-markdown';
 export type { ReadableEntity, ReadableMessage } from './rich/entities-to-markdown';
 export { styleSegments } from './rich/style-segments';
@@ -34,5 +34,6 @@ export type {
     RichBlockNode,
     RichTextNode,
     RichBlocksToMarkdownOptions,
+    RichMediaDetails,
     RichMediaKind,
 } from './rich/rich-types';

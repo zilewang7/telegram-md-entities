@@ -69,6 +69,7 @@
     },
     "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.2",
+        "@grammyjs/types": "5.0.0",
         "@types/mdast": "^4.0.4",
         "@types/node": "^24.0.0",
         "esbuild": "^0.25.0",
