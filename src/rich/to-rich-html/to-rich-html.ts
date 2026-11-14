@@ -6,11 +6,12 @@
  * converting entities to HTML is lossless with only '& < >' to escape,
  * where going back through markdown would reintroduce every escaping edge
  * case. The output embeds in a rich markdown document: every block starts
- * with a block tag at a line start and only <pre> may contain a blank
- * line, so each block is one HTML block to a CommonMark-style parser.
+ * with a block tag at a line start and no block contains a blank line (a
+ * <pre> writes the newline ending an empty line as &#10;), so each block
+ * is one HTML block to a CommonMark-style parser.
  */
 import type { MessageEntity, RenderedMessage } from '../../types';
-import { escapeHtmlAttribute, escapeHtmlText } from './escape-html';
+import { escapeHtmlAttribute, preTextHtml } from './escape-html';
 import { renderInlineHtml } from './inline-html';
 
 const BLOCK_TYPES = new Set(['blockquote', 'expandable_blockquote', 'pre']);
@@ -73,7 +74,7 @@ const renderParagraphs = (text: string, entities: readonly MessageEntity[], star
 };
 
 const renderPre = (text: string, language: string | undefined): string => {
-    const content = escapeHtmlText(text);
+    const content = preTextHtml(text);
     return language
         ? `<pre><code class="language-${escapeHtmlAttribute(language)}">${content}</code></pre>`
         : `<pre>${content}</pre>`;
@@ -99,8 +100,9 @@ const renderBlock = (text: string, entities: readonly MessageEntity[], block: Me
  * lines: blockquote → <blockquote>, expandable_blockquote →
  * <blockquote expandable>, pre → <pre> (with <code class="language-x">),
  * the text between them → <p> paragraphs. Inline entities become
- * b/i/u/s/tg-spoiler/code/a tags; newlines inside a paragraph or quote
- * become <br>. An empty message gives ''.
+ * b/i/u/s/tg-spoiler/code/a tags; inside a paragraph or quote newlines
+ * become <br> and spaces that would collapse become &nbsp;. An empty
+ * message gives ''.
  */
 export const toRichHtml = (message: RenderedMessage): string => {
     const { text } = message;

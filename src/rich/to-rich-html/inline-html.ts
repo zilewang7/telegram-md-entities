@@ -6,7 +6,7 @@
  * or quote never spans a blank line.
  */
 import type { MessageEntity } from '../../types';
-import { escapeHtmlAttribute, escapeHtmlText } from './escape-html';
+import { escapeHtmlAttribute, flowingTextHtml } from './escape-html';
 
 type InlineStyle = 'text_link' | 'bold' | 'italic' | 'underline' | 'strikethrough' | 'spoiler' | 'code';
 
@@ -66,7 +66,9 @@ const closeTag = (atom: StyleAtom): string =>
     atom.style === 'text_link' ? '</a>' : `</${TAG_NAMES[atom.style]}>`;
 
 interface Run {
-    text: string;
+    /** text[start, end) */
+    start: number;
+    end: number;
     atoms: StyleAtom[];
 }
 
@@ -95,16 +97,14 @@ const toRuns = (text: string, entities: readonly MessageEntity[]): Run[] => {
         const key = atoms.map((atom) => atom.key).join('\u0000');
         const last = runs[runs.length - 1];
         if (last && key === previousKey) {
-            last.text += text[index] ?? '';
+            last.end = index + 1;
         } else {
-            runs.push({ text: text[index] ?? '', atoms });
+            runs.push({ start: index, end: index + 1, atoms });
         }
         previousKey = key;
     }
     return runs;
 };
-
-const escapeInlineText = (text: string): string => escapeHtmlText(text).replace(/\n/g, '<br>');
 
 /**
  * Render text whose entities are already clipped to it (offsets relative
@@ -113,6 +113,8 @@ const escapeInlineText = (text: string): string => escapeHtmlText(text).replace(
 export const renderInlineHtml = (text: string, entities: readonly MessageEntity[]): string => {
     const output: string[] = [];
     const stack: StyleAtom[] = [];
+    // Escaped over the whole text: a space's form depends on what precedes it
+    const charsHtml = flowingTextHtml(text);
     const closeTo = (depth: number): void => {
         while (stack.length > depth) {
             const atom = stack.pop();
@@ -131,7 +133,7 @@ export const renderInlineHtml = (text: string, entities: readonly MessageEntity[
             output.push(openTag(atom));
             stack.push(atom);
         }
-        output.push(escapeInlineText(run.text));
+        output.push(charsHtml.slice(run.start, run.end).join(''));
     }
     closeTo(0);
     return output.join('');

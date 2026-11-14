@@ -58,22 +58,43 @@ describe('toRichHtml', () => {
         expect(toRichHtml(quote)).toBe('<blockquote>引用 <i>斜</i></blockquote>\n\n<p>正文</p>');
     });
 
-    it('pre keeps its text (blank lines included) and carries the language', () => {
-        const message = renderMarkdown('前\n\n```ts\nconst a = 1 < 2;\n\nlet b = "x";\n```\n\n```\nplain\n```');
+    it('pre keeps its text and carries the language; an empty line ends in &#10;', () => {
+        const message = renderMarkdown(
+            '前\n\n```ts\nconst a = 1 < 2;\n\nlet b = "x";\n    indented\n```\n\n```\nplain\n```'
+        );
         expect(toRichHtml(message)).toBe(
             '<p>前</p>\n\n' +
-                '<pre><code class="language-ts">const a = 1 &lt; 2;\n\nlet b = "x";</code></pre>\n\n' +
+                '<pre><code class="language-ts">const a = 1 &lt; 2;\n&#10;let b = "x";\n    indented</code></pre>\n\n' +
                 '<pre>plain</pre>'
         );
     });
 
+    it('no line inside pre is empty or blank, whatever the run of empty lines', () => {
+        const message: RenderedMessage = { text: 'x\n\n\ny\n  \nz\n', entities: [entity('pre', 0, 12)] };
+        const html = toRichHtml(message);
+        expect(html).toBe('<pre>x\n&#10;\ny\n  &#10;z\n</pre>');
+        for (const line of html.split('\n')) expect(line.trim()).not.toBe('');
+        // Decoding the references gives the text back
+        expect(html.replace(/&#10;/g, '\n').replace(/^<pre>|<\/pre>$/g, '')).toBe(message.text);
+    });
+
+    it('spaces that would collapse become &nbsp; outside pre', () => {
+        const message: RenderedMessage = {
+            text: 'a  b   c\n  lead\n single',
+            entities: [entity('bold', 1, 3)],
+        };
+        expect(toRichHtml(message)).toBe('<p>a<b> &nbsp;b</b> &nbsp;&nbsp;c<br>&nbsp;&nbsp;lead<br>&nbsp;single</p>');
+        const quote = wrapInBlockquote({ text: 'x  y', entities: [] });
+        expect(toRichHtml(quote)).toBe('<blockquote>x &nbsp;y</blockquote>');
+    });
+
     it('a pre nested in a quote renders as inline code, split at line breaks', () => {
         const message: RenderedMessage = {
-            text: 'quote\nline one\nline two',
-            entities: [entity('blockquote', 0, 23), entity('pre', 6, 17)],
+            text: 'quote\nline one\n\nline two',
+            entities: [entity('blockquote', 0, 24), entity('pre', 6, 18)],
         };
         expect(toRichHtml(message)).toBe(
-            '<blockquote>quote<br><code>line one</code><br><code>line two</code></blockquote>'
+            '<blockquote>quote<br><code>line one</code><br><br><code>line two</code></blockquote>'
         );
     });
 
@@ -92,7 +113,7 @@ describe('toRichHtml', () => {
         );
     });
 
-    it('no block except pre contains a blank line, and every block starts with a tag', () => {
+    it('no block contains a blank line, only pre a newline, and every block starts with a tag', () => {
         const message = renderMarkdown(
             '> q1\n>\n> q2\n\n<details>\n<summary>S</summary>\n\nA\n\nB\n</details>\n\n```\nx\n\ny\n```\n\n**p1**\n\np2'
         );
@@ -101,6 +122,7 @@ describe('toRichHtml', () => {
             const html = index === 0 ? block : `<${block}`;
             expect(html.startsWith('<')).toBe(true);
             if (!html.startsWith('<pre')) expect(html).not.toContain('\n');
+            for (const line of html.split('\n')) expect(line.trim()).not.toBe('');
         }
     });
 
