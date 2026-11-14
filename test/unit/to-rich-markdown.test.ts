@@ -1,3 +1,4 @@
+import * as fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { renderMarkdown, styleSegments, toRichMarkdown } from '../../src/index';
 import type { RichMarkdownOptions } from '../../src/index';
@@ -147,7 +148,7 @@ describe('toRichMarkdown: soft line breaks become hard ones', () => {
     });
 });
 
-describe("toRichMarkdown: a '$' stays only as part of a pandoc math pair", () => {
+describe("toRichMarkdown: a '$' stays only in a formula pair with the very next '$'", () => {
     it.each([
         ['价格$5和$10之间', '价格\\$5和\\$10之间'],
         ['$x^2$ costs $5', '$x^2$ costs \\$5'],
@@ -155,11 +156,42 @@ describe("toRichMarkdown: a '$' stays only as part of a pandoc math pair", () =>
         ['$5 and $10', '\\$5 and \\$10'],
         ['\\$5', '\\$5'],
         ['`$5` and $', '`$5` and \\$'],
-        ['$a $b$ and $ x$', '$a $b$ and \\$ x\\$'],
+        [
+            '价格$5和$10之间；公式 $x^2$ costs $5；$5 and $10',
+            '价格\\$5和\\$10之间；公式 $x^2$ costs \\$5；\\$5 and \\$10',
+        ],
+        ['$a$ and $b$', '$a$ and $b$'],
+        ['costs $5, $x$ is', 'costs \\$5, $x$ is'],
+        // The '$$' run stays and counts as the next '$': neither single pairs
+        ['$a$$b$', '\\$a$$b\\$'],
+        ['$a $b$ and $ x$', '\\$a $b$ and \\$ x\\$'],
         ['$$E=mc^2$$ and $$', '$$E=mc^2$$ and $$'],
         ['**$5** and $6', '<b>\\$5</b> and \\$6'],
     ])('%j', (input, expected) => {
         expect(expectSameDisplay(input)).toBe(expected);
+    });
+
+    it('every single $ left unescaped belongs to a pair with nothing between', () => {
+        fc.assert(
+            fc.property(
+                fc.array(fc.constantFrom('$', '$$', '\\$', '5', 'x', '^2', ' ', '和', '，'), { maxLength: 20 }),
+                (parts) => {
+                    const output = toRichMarkdown(parts.join(''));
+                    // Unescaped '$' runs, in order: singles must come in adjacent pairs
+                    const runs = output.replace(/\\\$/g, '').match(/\$+/g) ?? [];
+                    let index = 0;
+                    while (index < runs.length) {
+                        if (runs[index] === '$') {
+                            expect(runs[index + 1], output).toBe('$');
+                            index += 2;
+                        } else {
+                            index += 1;
+                        }
+                    }
+                }
+            ),
+            { numRuns: 500 }
+        );
     });
 });
 
