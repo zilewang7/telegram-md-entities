@@ -281,6 +281,34 @@ describe('toRichMarkdown: autolinks stay byte-identical', () => {
     });
 });
 
+describe('toRichMarkdown: a raw <pre> block keeps no blank line', () => {
+    it.each([
+        ['top level', '示例：\n\n<pre>\nint a = 1;\n\nint b = 2;\n</pre>', '示例：\n\n<pre>\nint a = 1;&#10;\nint b = 2;\n</pre>'],
+        ['several blank lines, one with spaces', '<pre>a\n\n\n  \nb</pre>\n\n后文', '<pre>a&#10;&#10;&#10;\nb</pre>\n\n后文'],
+        ['in a list item', '- 项\n\n  <pre>\n  x\n\n  y\n  </pre>', '- 项\n\n  <pre>\n  x&#10;\n  y\n  </pre>'],
+        ['in a quote', '> <pre>\n> x\n>\n> y\n> </pre>\n\n后文', '> <pre>\n> x&#10;\n> y\n> </pre>\n\n后文'],
+        ['with a language', '<pre><code class="language-c">a;\n\nb;</code></pre>', '<pre><code class="language-c">a;&#10;\nb;</code></pre>'],
+    ])('%s', (_name, input, expected) => {
+        const output = toRichMarkdown(input);
+        expect(output).toBe(expected);
+        // Inside the <pre> block no line is blank any more
+        const block = output.slice(output.indexOf('<pre'), output.indexOf('</pre>') + '</pre>'.length);
+        for (const line of block.split('\n')) expect(line.replace(/^[ >]*/, '').trim()).not.toBe('');
+    });
+
+    it('streaming frames get the same treatment', () => {
+        expect(toRichMarkdown('示例：\n\n<pre>\nint a = 1;\n\nint b = 2;', { streaming: true })).toBe(
+            '示例：\n\n<pre>\nint a = 1;&#10;\nint b = 2;\n</pre>'
+        );
+    });
+
+    it('other html blocks and a pre without blank lines stay as written', () => {
+        for (const input of ['<pre>\nno blank\n</pre>', '<ul>\n<li>a</li>\n</ul>', '<b>\nx\n</b>']) {
+            expect(toRichMarkdown(input)).toBe(input);
+        }
+    });
+});
+
 describe('toRichMarkdown: streaming', () => {
     it.each([
         ['abc __und', 'abc <u>und</u>'],

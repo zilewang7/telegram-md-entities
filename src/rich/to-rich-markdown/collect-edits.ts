@@ -18,6 +18,7 @@ import type { SourceSpan } from './dollar-runs';
 import { htmlValueEdits, type SpoilerSpanState } from './html-edits';
 import { loneDollarEdits } from './lone-dollars';
 import { softBreakEdits } from './soft-breaks';
+import { isPreBlock, preBlankLineEdits } from './pre-blank-lines';
 import { mapEdits, shiftEdits, type OffsetMap, type SourceEdit } from './source-edits';
 import { unpairedSyntheticEdits, type SyntheticRange } from './unpaired-synthetic';
 import { valueOffsetMap } from './value-offsets';
@@ -88,6 +89,7 @@ const collectHtml = (node: Html, isBlock: boolean, scope: LeafScope, ctx: Collec
     if (map === null) return;
     const edits = mapEdits(htmlValueEdits(node.value, isBlock, scope.spans), map, node.value, ctx.source);
     pushOutsideFormulas(edits, scope, ctx);
+    if (isBlock && isPreBlock(node.value)) ctx.edits.push(...preBlankLineEdits(node.value, map, ctx.source));
 };
 
 /** Literal text: soft line breaks become hard ones, lone '$' are escaped */
