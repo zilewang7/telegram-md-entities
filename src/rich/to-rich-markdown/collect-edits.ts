@@ -18,6 +18,7 @@ import type { SourceSpan } from './dollar-runs';
 import { htmlValueEdits, type SpoilerSpanState } from './html-edits';
 import { loneDollarEdits } from './lone-dollars';
 import { softBreakEdits } from './soft-breaks';
+import { breakBeforeTextBlock } from './paragraph-join';
 import { isPreBlock, preBlankLineEdits } from './pre-blank-lines';
 import { mapEdits, shiftEdits, type OffsetMap, type SourceEdit } from './source-edits';
 import { unpairedSyntheticEdits, type SyntheticRange } from './unpaired-synthetic';
@@ -84,12 +85,14 @@ const wrapDelimiters = (
     ctx.edits.push(opening, closing);
 };
 
-const collectHtml = (node: Html, isBlock: boolean, scope: LeafScope, ctx: CollectContext): void => {
+/** Collect an html node's edits; true when an html block now reads as paragraph text */
+const collectHtml = (node: Html, isBlock: boolean, scope: LeafScope, ctx: CollectContext): boolean => {
     const map = valueOffsetMap(ctx.source, node, node.value);
-    if (map === null) return;
-    const edits = mapEdits(htmlValueEdits(node.value, isBlock, scope.spans), map, node.value, ctx.source);
-    pushOutsideFormulas(edits, scope, ctx);
+    if (map === null) return false;
+    const rewrite = htmlValueEdits(node.value, isBlock, scope.spans);
+    pushOutsideFormulas(mapEdits(rewrite.edits, map, node.value, ctx.source), scope, ctx);
     if (isBlock && isPreBlock(node.value)) ctx.edits.push(...preBlankLineEdits(node.value, map, ctx.source));
+    return rewrite.becameText;
 };
 
 /** Literal text: soft line breaks become hard ones, lone '$' are escaped */
@@ -152,7 +155,9 @@ const collectPhrasing = (
             .with({ type: 'link' }, { type: 'linkReference' }, (link) => {
                 if (!isAutolink(link, ctx.source)) collectPhrasing(link.children, scope, ctx);
             })
-            .with({ type: 'html' }, (html) => collectHtml(html, false, scope, ctx))
+            .with({ type: 'html' }, (html) => {
+                collectHtml(html, false, scope, ctx);
+            })
             .with({ type: 'text' }, (text) =>
                 collectText(text, isBareUrlBefore(nodes[index - 1], text, ctx.source), scope, ctx)
             )
@@ -183,7 +188,13 @@ const leafScope = (leaf: Parent & { children: PhrasingContent[] }, ctx: CollectC
 const collectLeaf = (leaf: Parent & { children: PhrasingContent[] }, ctx: CollectContext): void =>
     collectPhrasing(leaf.children, leafScope(leaf, ctx), ctx);
 
-const collectBlock = (node: RootContent, ctx: CollectContext): void => {
+/** A block-level html node; `previous` is its preceding sibling */
+const collectHtmlBlock = (node: Html, previous: RootContent | undefined, ctx: CollectContext): void => {
+    const becameText = collectHtml(node, true, { spans: { open: 0 }, math: NO_MATH }, ctx);
+    if (becameText) ctx.edits.push(...breakBeforeTextBlock(previous, node, ctx.source));
+};
+
+const collectBlock = (node: RootContent, ctx: CollectContext, previous?: RootContent): void => {
     match(node)
         .with({ type: 'paragraph' }, { type: 'heading' }, (leaf) => collectLeaf(leaf, ctx))
         .with({ type: 'table' }, (table) => {
@@ -191,7 +202,7 @@ const collectBlock = (node: RootContent, ctx: CollectContext): void => {
                 for (const cell of row.children) collectLeaf(cell, ctx);
             }
         })
-        .with({ type: 'html' }, (html) => collectHtml(html, true, { spans: { open: 0 }, math: NO_MATH }, ctx))
+        .with({ type: 'html' }, (html) => collectHtmlBlock(html, previous, ctx))
         .with({ type: 'blockquote' }, { type: 'listItem' }, { type: 'footnoteDefinition' }, (container) =>
             collectSiblings(container.children, ctx)
         )
@@ -252,7 +263,7 @@ const collectSiblings = (nodes: readonly RootContent[], ctx: CollectContext): vo
             continue;
         }
         const node = nodes[index];
-        if (node !== undefined) collectBlock(node, ctx);
+        if (node !== undefined) collectBlock(node, ctx, nodes[index - 1]);
         index += 1;
     }
 };

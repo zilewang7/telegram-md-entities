@@ -109,9 +109,10 @@ describe('toRichMarkdown: HTML the package shows literally is escaped', () => {
 
     it('an html block led by an unknown tag turns into literal paragraph text', () => {
         expect(expectSameDisplay('<div>**x** _y_</div>\n\npara')).toBe('&lt;div>\\*\\*x\\*\\* \\_y\\_&lt;/div>\n\npara');
-        // A line break stays a hard break, except before a line opening a tag
-        expect(expectSameDisplay('- item\n  <div>\n  # b_c\n  </div>')).toBe(
-            '- item\n  &lt;div>\\\n  \\# b\\_c\n  &lt;/div>'
+        // Every line break of the escaped block is a hard one, before an
+        // escaped tag too
+        expect(expectSameDisplay('- item\n\n  <div>\n  # b_c\n  </div>')).toBe(
+            '- item\n\n  &lt;div>\\\n  \\# b\\_c\\\n  &lt;/div>'
         );
     });
 
@@ -306,6 +307,35 @@ describe('toRichMarkdown: a raw <pre> block keeps no blank line', () => {
         for (const input of ['<pre>\nno blank\n</pre>', '<ul>\n<li>a</li>\n</ul>', '<b>\nx\n</b>']) {
             expect(toRichMarkdown(input)).toBe(input);
         }
+    });
+});
+
+describe('toRichMarkdown: escaped block html keeps its lines', () => {
+    /** The package shows the original blocks with a blank line between, the output with a line break */
+    const sameLines = (input: string, output: string): void => {
+        expect(renderMarkdown(output).text).toBe(renderMarkdown(input).text.replace(/\n\n/g, '\n'));
+    };
+
+    it.each([
+        ['paragraphs after a paragraph', '第一段说明\n<p>第二段</p>\n<p>第三段</p>', '第一段说明\\\n&lt;p>第二段&lt;/p>\\\n&lt;p>第三段&lt;/p>'],
+        ['a div between paragraph lines', '前文\n<div>\n内容\n</div>\n后文', '前文\\\n&lt;div>\\\n内容\\\n&lt;/div>\\\n后文'],
+        ['in a quote', '> 引用\n> <div>\n> x\n> </div>', '> 引用\\\n> &lt;div>\\\n> x\\\n> &lt;/div>'],
+    ])('%s', (_name, input, expected) => {
+        const output = toRichMarkdown(input);
+        expect(output).toBe(expected);
+        sameLines(input, output);
+    });
+
+    it('a blank line before the block, a heading or a $$ line needs no break', () => {
+        expect(toRichMarkdown('前文\n\n<div>\nx\n</div>')).toBe('前文\n\n&lt;div>\\\nx\\\n&lt;/div>');
+        expect(toRichMarkdown('# 标题\n<div>x</div>')).toBe('# 标题\n&lt;div>x&lt;/div>');
+        expect(toRichMarkdown('$$\nx\n$$\n<div>y</div>')).toBe('$$\nx\n$$\n&lt;div>y&lt;/div>');
+    });
+
+    it('where a kept block tag starts a line, the rest up to a blank line stays html', () => {
+        expect(toRichMarkdown('<div>\n<b>粗</b>\n<ul>\n<li>a</li>\n</ul>\n</div>')).toBe(
+            '&lt;div>\\\n<b>粗</b>\n<ul>\n<li>a</li>\n</ul>\n&lt;/div>'
+        );
     });
 });
 

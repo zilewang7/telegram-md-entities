@@ -10,7 +10,7 @@
  *     literally too, instead of dropping it or swallowing what follows.
  */
 import { isKnownCloseTag, readOpenTag, tokenizeHtml, type HtmlToken } from '../../render/html-tags';
-import { literalEscapeEdits } from './literal-escape';
+import { literalEscapeEdits, type SoftBreakTest } from './literal-escape';
 import type { SourceEdit } from './source-edits';
 
 /** Open spoiler spans of the current leaf block (the renderer's pairing scope) */
@@ -86,10 +86,11 @@ const markupLikeLessThan = (value: string, start: number, end: number): SourceEd
 const literalEdits = (
     value: string,
     placed: PlacedToken,
-    context: HtmlContext
+    context: HtmlContext,
+    staysSoft: SoftBreakTest
 ): SourceEdit[] =>
     context === 'inline'
-        ? literalEscapeEdits(value, placed.start, placed.end)
+        ? literalEscapeEdits(value, placed.start, placed.end, staysSoft)
         : markupLikeLessThan(value, placed.start, placed.end);
 
 interface TokenDecision {
@@ -106,29 +107,72 @@ const staysHtmlBlock = (decisions: readonly TokenDecision[]): boolean => {
     return leading !== undefined && leading.rewrite !== null && leading.rewrite.kind !== 'literal';
 };
 
+/** Kept tags that can start an html block, and so end a paragraph, at a line start */
+const BLOCK_OPENING_TAGS = new Set(['pre', 'ul', 'ol', 'li', 'details', 'summary']);
+
+const isLineStartAt = (value: string, index: number): boolean =>
+    value.slice(value.lastIndexOf('\n', index - 1) + 1, index).trim() === '';
+
+/** Offsets of the lines that a kept block-opening tag starts */
+const blockLineStarts = (value: string, decisions: readonly TokenDecision[]): number[] =>
+    decisions.flatMap(({ placed, rewrite }) => {
+        const opens =
+            placed.token.kind === 'tag' &&
+            rewrite !== null &&
+            rewrite.kind !== 'literal' &&
+            BLOCK_OPENING_TAGS.has(placed.token.name) &&
+            isLineStartAt(value, placed.start);
+        return opens ? [placed.start] : [];
+    });
+
 /**
- * Edits (relative to value) for one html node. `spans` carries the spoiler
- * span pairing across the inline html nodes of one leaf block.
+ * Once escaped, a block's lines read as paragraph text, except from a line
+ * that a kept block tag starts up to the next blank line: that part is an
+ * html block again, where a '\' would show.
+ */
+const softBreakTest = (value: string, decisions: readonly TokenDecision[]): SoftBreakTest => {
+    const blockStarts = blockLineStarts(value, decisions);
+    return (newlineIndex) => {
+        const nextLineEnd = value.indexOf('\n', newlineIndex + 1);
+        const paragraphStart = value.lastIndexOf('\n\n', newlineIndex);
+        return blockStarts.some(
+            (start) => start > paragraphStart && start <= (nextLineEnd === -1 ? value.length : nextLineEnd)
+        );
+    };
+};
+
+export interface HtmlRewrite {
+    /** Edits relative to the value */
+    edits: SourceEdit[];
+    /** An html block whose leading tag was escaped: it now reads as paragraph text */
+    becameText: boolean;
+}
+
+/**
+ * Edits for one html node. `spans` carries the spoiler span pairing across
+ * the inline html nodes of one leaf block.
  */
 export const htmlValueEdits = (
     value: string,
     isBlock: boolean,
     spans: SpoilerSpanState
-): SourceEdit[] => {
+): HtmlRewrite => {
     const decisions: TokenDecision[] = placeTokens(value).map((placed) => ({
         placed,
         rewrite: placed.token.kind === 'tag' ? rewriteTag(placed.token, spans) : null,
     }));
     const context: HtmlContext = isBlock && staysHtmlBlock(decisions) ? 'block' : 'inline';
+    const staysSoft = softBreakTest(value, decisions);
 
-    return decisions.flatMap(({ placed, rewrite }): SourceEdit[] => {
+    const edits = decisions.flatMap(({ placed, rewrite }): SourceEdit[] => {
         // Text: inside a kept block it is HTML text; elsewhere it is a
         // comment / declaration the package shows literally
-        if (rewrite === null) return literalEdits(value, placed, context);
+        if (rewrite === null) return literalEdits(value, placed, context, staysSoft);
         if (rewrite.kind === 'keep') return [];
         if (rewrite.kind === 'replace') {
             return [{ start: placed.start, end: placed.end, text: rewrite.text }];
         }
-        return literalEdits(value, placed, context);
+        return literalEdits(value, placed, context, staysSoft);
     });
+    return { edits, becameText: isBlock && context === 'inline' };
 };
