@@ -31,6 +31,8 @@ export type { ReadableEntity, ReadableMessage } from './rich/entities-to-markdow
 export { toRichMarkdown } from './rich/to-rich-markdown/to-rich-markdown';
 export type { RichMarkdownOptions } from './rich/to-rich-markdown/to-rich-markdown';
 export type { TextLink, TextLinkContext, TextLinker } from './rich/to-rich-markdown/text-links';
+export { collectRichImages } from './rich/collect-rich-images';
+export type { RichImageRef } from './rich/collect-rich-images';
 export { toRichHtml } from './rich/to-rich-html/to-rich-html';
 export { styleSegments } from './rich/style-segments';
 export type { StyleSegment } from './rich/style-segments';

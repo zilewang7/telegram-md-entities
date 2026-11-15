@@ -49,6 +49,7 @@ richBlocksToMarkdown(blocks, opts?)  // REVERSE: Bot API 10.1–10.3 rich messag
 richTextToMarkdown(richText)         // REVERSE: one RichText value (e.g. a 10.4 quote's rich_texts) -> inline markdown
 richTextToPlain(richText)            // REVERSE: one RichText value -> plain text
 toRichMarkdown(markdown, options?)   // RICH SEND: this dialect -> markdown for Telegram rich messages
+collectRichImages(markdown)          // markdown image nodes with source offsets, for rich-media blocks
 toRichHtml(message)                  // RICH SEND: {text, entities} -> rich-message HTML blocks
 styleSegments(message)               // per-char style runs: display-equivalence comparator
 ```
@@ -101,6 +102,26 @@ await bot.api.sendRichMessage(chatId, { markdown: `${body}\n\n${footer}` });
 - `toRichHtml({ text, entities })` turns a rendered message into HTML blocks that embed in a rich markdown document: quotes become `<blockquote>` / `<blockquote expandable>`, `pre` becomes `<pre>` (with `<code class="language-x">`), the text in between becomes `<p>` paragraphs; inline entities become `b i u s tg-spoiler code a` tags, newlines `<br>`, and spaces the HTML parser would collapse (a second space in a run, a line's leading spaces) `&nbsp;`. No block contains a blank line — inside `<pre>` the newline that ends an empty line is written as `&#10;` — so each block stays one HTML block. Meant for what a bot already has as exact entities (a thinking quote, tool records, footers, status lines). Telegram turns a tab inside `<pre>` into a single space (measured); expand tabs first where the alignment matters.
 
 Not rewritten on purpose: `$x^2$` math, `==mark==` and `[^1]` footnotes reach Telegram as written — the native rendering is the point of rich messages.
+
+### Rich media placeholders
+
+A bot that sends images as rich-message media blocks (Bot API 10.1+ `photo`/`video` blocks, or its own placeholders) has to find them in the model's markdown at the source level. `collectRichImages(markdown)` returns exactly that, read from the same parse `renderMarkdown` and `toRichMarkdown` use:
+
+```ts
+const refs = collectRichImages(llmOutput);
+// [{ index: 0, url: 'g1/img1/s1/#12', alt: '', start: 10, end: 29, block: true }, …]
+
+// Replace each image, right to left so the earlier offsets stay valid.
+let body = llmOutput;
+for (const ref of [...refs].reverse()) {
+    const media = await resolveMedia(ref.url);   // the bot's own step
+    body = `${body.slice(0, ref.start)}${media}${body.slice(ref.end)}`;
+}
+```
+
+`markdown.slice(ref.start, ref.end)` is exactly the image syntax (UTF-16 offsets, from the `!` to the closing `)` — or the closing `]` of a reference). `block` is true only when the image alone forms a top-level paragraph, i.e. it can become a media block instead of inline content; images inside quotes, lists, tables, `<details>`, links or beside text are inline. `index` counts the parser's image nodes in source order. The call is read-only and deterministic.
+
+The same parser rules apply: an `![](…)` inside a code span or fence is not an image, `<img>` is not markdown, a reference-style image (`![alt][id]`) resolves through its link reference definition — its url and title come from the definition, and a reference no definition resolves stays text, so it is not reported. A `<details>` body is re-parsed as markdown exactly as the renderer re-parses it, and the offsets point back into the real source, so replacing there keeps the element intact. `url`, `alt` and `title` are the parser's values: http(s), relative and bot-internal refs such as `g1/img1/s1/#12` pass through verbatim, while markdown escapes and character references are resolved (`![a](https://example.com/a\(b\).png)` gives `https://example.com/a(b).png`). `title` is present only when the image carries one.
 
 ## Encoded server behavior
 
