@@ -55,11 +55,10 @@ export const useForwardActions = ({
     () => dialectLabelOf(plan.markdownDialect, t),
     [plan.markdownDialect, t]
   );
-  // macOS native has no working forward channel (the matrix says so): never
-  // mark one as recommended or offer it as a working action, or the page
-  // contradicts its own matrix and channel note.
-  const forwardUnavailable = plan.platform === 'macos';
-  const recommended = forwardUnavailable ? null : plan.recommended;
+  // The plan carries the recommendation policy; macOS has none (the matrix
+  // says no channel works there), so no badge is shown on that platform.
+  const macosUnavailable = plan.platform === 'macos';
+  const recommended = plan.recommended;
 
   const handleCopyRich = useCallback(() => {
     const rendered = renderOrNull(markdown);
@@ -104,21 +103,21 @@ export const useForwardActions = ({
       {
         id: 'rich-html',
         label: t('forward.copy.rich'),
-        hint: forwardUnavailable
+        hint: macosUnavailable
           ? t('forward.copy.rich.hint.macos')
           : t('forward.copy.rich.hint'),
         recommended: recommended === 'rich-html',
-        disabled: !hasContent || forwardUnavailable,
+        disabled: !hasContent,
         onSelect: handleCopyRich,
       },
       {
         id: 'markdown',
         label: t('forward.copy.markdown'),
-        hint: forwardUnavailable
+        hint: macosUnavailable
           ? t('forward.copy.markdown.hint.macos')
           : t('forward.copy.markdown.hint', { dialect: dialectLabel }),
         recommended: recommended === 'markdown',
-        disabled: !hasContent || forwardUnavailable,
+        disabled: !hasContent,
         onSelect: handleCopyMarkdown,
       },
       {
@@ -133,7 +132,7 @@ export const useForwardActions = ({
     [
       hasContent,
       recommended,
-      forwardUnavailable,
+      macosUnavailable,
       dialectLabel,
       handleCopyRich,
       handleCopyMarkdown,

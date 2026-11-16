@@ -2,9 +2,8 @@ import { useCallback, useMemo } from 'react';
 import type { ChangeEvent } from 'react';
 import { DEFAULT_MAX_LENGTH } from 'telegram-md-entities';
 import { match } from 'ts-pattern';
-import { MESSAGE_ENTITY_LIMIT } from '../../core/entity-convert';
+import { MESSAGE_ENTITY_LIMIT, entityBudgetOf } from '../../core/entity-convert';
 import { useI18n } from '../../i18n/i18n-context';
-import { entityBudgetOf } from './entity-budget';
 import { PreviewBubble } from './preview-bubble';
 import type { ForwardPreview } from './use-forward-preview';
 

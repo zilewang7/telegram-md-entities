@@ -22,7 +22,7 @@ export const ForwardPanel = ({ plan }: ForwardPanelProps) => {
   // Seeded once on purpose: switching language keeps the text the user edited
   const [markdown, setMarkdown] = useState(() => t('forward.sample.content'));
   const [collapsedQuotes, setCollapsedQuotes] = useState(false);
-  const preview = useForwardPreview(markdown, collapsedQuotes, plan.platform);
+  const preview = useForwardPreview(markdown, collapsedQuotes);
   const copy = useCopyActions();
   const actions = useForwardActions({ markdown, plan, copy, collapsedQuotes });
   const channelNote = useMemo(

@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { ChangeEvent, ClipboardEvent } from 'react';
-import { clipboardHtmlToMarkdown } from '../../core/entity-convert';
-import { escapePlainMarkdown } from './escape-plain';
+import { clipboardHtmlToMarkdown, escapePlainMarkdown } from '../../core/entity-convert';
 import type { PasteState } from './reverse-types';
 
 export interface PasteActions {
