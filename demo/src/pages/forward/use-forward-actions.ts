@@ -25,6 +25,14 @@ const renderOrNull = (markdown: string): RenderedMarkdown | null => {
   }
 };
 
+/**
+ * The toggle forces every quote collapsible. Unchecked leaves the source
+ * styles alone: a `> quote` stays a normal quote and a `<details>` block stays
+ * an expandable one.
+ */
+const withQuoteChoice = (rendered: RenderedMarkdown, collapsedQuotes: boolean): RenderedMarkdown =>
+  collapsedQuotes ? withQuoteStyle(rendered, true) : rendered;
+
 interface ForwardActionsOptions {
   markdown: string;
   plan: ChannelPlan;
@@ -47,70 +55,85 @@ export const useForwardActions = ({
     () => dialectLabelOf(plan.markdownDialect, t),
     [plan.markdownDialect, t]
   );
+  // macOS native has no working forward channel (the matrix says so): never
+  // mark one as recommended or offer it as a working action, or the page
+  // contradicts its own matrix and channel note.
+  const forwardUnavailable = plan.platform === 'macos';
+  const recommended = forwardUnavailable ? null : plan.recommended;
 
   const handleCopyRich = useCallback(() => {
     const rendered = renderOrNull(markdown);
     if (rendered === null) {
-      reportFailure(t('forward.convert.richFailed'));
+      reportFailure({ key: 'forward.convert.richFailed' });
       return;
     }
-    const payload = renderedToClipboardPayload(withQuoteStyle(rendered, collapsedQuotes), plan.target);
+    const payload = renderedToClipboardPayload(withQuoteChoice(rendered, collapsedQuotes), plan.target);
     copyRich(payload.html, payload.plainText);
-  }, [markdown, plan.target, collapsedQuotes, copyRich, reportFailure, t]);
+  }, [markdown, plan.target, collapsedQuotes, copyRich, reportFailure]);
 
   const handleCopyMarkdown = useCallback(() => {
     const rendered = renderOrNull(markdown);
     if (rendered === null) {
-      reportFailure(t('forward.convert.markdownFailed'));
+      reportFailure({ key: 'forward.convert.markdownFailed' });
       return;
     }
     const text =
       plan.markdownDialect === 'ios'
         ? renderedToIosMarkdown(rendered)
         : renderedToTelegramMarkdown(rendered);
-    // The success line carries the dialect, so the caller composes the full message
-    copyPlainText(text, t('forward.copy.markdown.done', { dialect: dialectLabel }));
-  }, [markdown, plan.markdownDialect, dialectLabel, copyPlainText, reportFailure, t]);
+    // One key per dialect: the line is translated again on a locale switch
+    copyPlainText(text, {
+      key:
+        plan.markdownDialect === 'ios'
+          ? 'forward.copy.markdown.done.ios'
+          : 'forward.copy.markdown.done.telegram',
+    });
+  }, [markdown, plan.markdownDialect, copyPlainText, reportFailure]);
 
   const handleCopyPlain = useCallback(() => {
     const rendered = renderOrNull(markdown);
     if (rendered === null) {
-      reportFailure(t('forward.convert.plainFailed'));
+      reportFailure({ key: 'forward.convert.plainFailed' });
       return;
     }
-    copyPlainText(rendered.text, t('forward.copy.plain.done'));
-  }, [markdown, copyPlainText, reportFailure, t]);
+    copyPlainText(rendered.text, { key: 'forward.copy.plain.done' });
+  }, [markdown, copyPlainText, reportFailure]);
 
   return useMemo<readonly ChannelAction[]>(
     () => [
       {
         id: 'rich-html',
         label: t('forward.copy.rich'),
-        hint: t('forward.copy.rich.hint'),
-        recommended: plan.recommended === 'rich-html',
-        disabled: !hasContent,
+        hint: forwardUnavailable
+          ? t('forward.copy.rich.hint.macos')
+          : t('forward.copy.rich.hint'),
+        recommended: recommended === 'rich-html',
+        disabled: !hasContent || forwardUnavailable,
         onSelect: handleCopyRich,
       },
       {
         id: 'markdown',
         label: t('forward.copy.markdown'),
-        hint: t('forward.copy.markdown.hint', { dialect: dialectLabel }),
-        recommended: plan.recommended === 'markdown',
-        disabled: !hasContent,
+        hint: forwardUnavailable
+          ? t('forward.copy.markdown.hint.macos')
+          : t('forward.copy.markdown.hint', { dialect: dialectLabel }),
+        recommended: recommended === 'markdown',
+        disabled: !hasContent || forwardUnavailable,
         onSelect: handleCopyMarkdown,
       },
       {
         id: 'plain',
         label: t('forward.copy.plain'),
         hint: t('forward.copy.plain.hint'),
-        recommended: plan.recommended === 'plain',
+        recommended: recommended === 'plain',
         disabled: !hasContent,
         onSelect: handleCopyPlain,
       },
     ],
     [
       hasContent,
-      plan.recommended,
+      recommended,
+      forwardUnavailable,
       dialectLabel,
       handleCopyRich,
       handleCopyMarkdown,

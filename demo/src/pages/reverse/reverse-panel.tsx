@@ -25,9 +25,11 @@ export const ReversePanel = ({ platform, readSupported }: ReversePanelProps) => 
   const { t } = useI18n();
   const {
     state,
+    inputText,
     markdown,
     reading,
     handlePaste,
+    handleInputChange,
     readFromClipboard,
     handleUsePlainAsMarkdown,
     handleMarkdownChange,
@@ -47,13 +49,19 @@ export const ReversePanel = ({ platform, readSupported }: ReversePanelProps) => 
           title={t('reverse.paste.title')}
           hint={t('reverse.paste.subtitle')}
         />
-        <PasteZone onPaste={handlePaste} onReadClipboard={readFromClipboard} reading={reading} />
+        <PasteZone
+          value={inputText}
+          onChange={handleInputChange}
+          onPaste={handlePaste}
+          onReadClipboard={readFromClipboard}
+          reading={reading}
+        />
         {platformNote !== '' && <p className="hint rv-platform-note">{platformNote}</p>}
         {match(state)
           .with({ kind: 'idle' }, () => <p className="notice info">{t('reverse.empty')}</p>)
-          .with({ kind: 'error' }, ({ message }) => (
+          .with({ kind: 'error' }, ({ messageKey }) => (
             <p className="error-text" role="alert">
-              {message}
+              {t(messageKey)}
             </p>
           ))
           .with({ kind: 'plain' }, () => null)

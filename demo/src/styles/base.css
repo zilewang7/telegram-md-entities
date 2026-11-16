@@ -16,6 +16,12 @@ body {
   padding: 0;
 }
 
+/* Panels differ in height, so a classic scrollbar can appear or disappear and
+ * shift the page sideways; always reserve its gutter instead. */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   background: var(--bg);
   color: var(--text);

@@ -1,8 +1,11 @@
 import { useCallback } from 'react';
-import type { ClipboardEvent } from 'react';
+import type { ChangeEvent, ClipboardEvent } from 'react';
 import { useI18n } from '../../i18n/i18n-context';
 
 interface PasteZoneProps {
+  /** The box is controlled so typed text and paste results cannot drift apart */
+  value: string;
+  onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
   onPaste: (event: ClipboardEvent<HTMLTextAreaElement>) => void;
   /** null when this browser cannot read the clipboard directly */
   onReadClipboard: (() => void) | null;
@@ -11,9 +14,10 @@ interface PasteZoneProps {
 
 /**
  * The paste target. A textarea (not a div) so mobile long-press paste works;
- * the handler reads the flavors and clears the field, nothing is kept.
+ * the paste handler reads the clipboard flavors and clears the field. Text
+ * typed by hand goes through onChange and is treated as plain input.
  */
-export const PasteZone = ({ onPaste, onReadClipboard, reading }: PasteZoneProps) => {
+export const PasteZone = ({ value, onChange, onPaste, onReadClipboard, reading }: PasteZoneProps) => {
   const { t } = useI18n();
 
   const handleRead = useCallback(() => {
@@ -27,6 +31,8 @@ export const PasteZone = ({ onPaste, onReadClipboard, reading }: PasteZoneProps)
         rows={5}
         aria-label={t('reverse.paste.ariaLabel')}
         placeholder={t('reverse.paste.placeholder')}
+        value={value}
+        onChange={onChange}
         onPaste={onPaste}
       />
       {onReadClipboard !== null ? (

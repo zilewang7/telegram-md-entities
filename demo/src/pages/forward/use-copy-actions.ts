@@ -1,62 +1,55 @@
 import { useCallback, useState } from 'react';
 import { match } from 'ts-pattern';
-import { useI18n } from '../../i18n/i18n-context';
-import type { I18nValue } from '../../i18n/i18n-context';
 import { copyRichText, copyText } from '../../lib/clipboard';
-import type { CopyChannel, CopyRichResult } from '../../lib/clipboard';
-import type { CopyStatus } from './channel-status';
+import type { CopyRichResult } from '../../lib/clipboard';
+import type { CopyMessage, CopyStatus } from './channel-status';
 
-type Translate = I18nValue['t'];
+const successStatus = (message: CopyMessage): CopyStatus => ({ tone: 'success', message });
 
-const successStatus = (channel: CopyChannel, message: string): CopyStatus => ({
-  tone: 'success',
-  channel,
-  message,
-});
-
-const errorStatus = (message: string): CopyStatus => ({ tone: 'error', channel: 'failed', message });
+const errorStatus = (message: CopyMessage): CopyStatus => ({ tone: 'error', message });
 
 /** What to tell the user about the channel that actually carried the HTML */
-const richStatusOf = (result: CopyRichResult, t: Translate): CopyStatus =>
+const richStatusOf = (result: CopyRichResult): CopyStatus =>
   match(result.channel)
-    .with('clipboard-item', () => successStatus('clipboard-item', t('forward.copy.rich.ok')))
-    .with('copy-event', () => successStatus('copy-event', t('forward.copy.rich.okCompat')))
-    .with('plain-text', () => successStatus('plain-text', t('forward.copy.rich.fallback')))
-    .with('failed', () => errorStatus(t('forward.copy.failed')))
+    .with('clipboard-item', () => successStatus({ key: 'forward.copy.rich.ok' }))
+    .with('copy-event', () => successStatus({ key: 'forward.copy.rich.okCompat' }))
+    .with('plain-text', () => successStatus({ key: 'forward.copy.rich.fallback' }))
+    .with('failed', () => errorStatus({ key: 'forward.copy.failed' }))
     .exhaustive();
 
 export interface CopyActions {
   status: CopyStatus | null;
   copyRich: (html: string, plainText: string) => void;
-  /** successMessage is shown verbatim once the text is on the clipboard */
-  copyPlainText: (text: string, successMessage: string) => void;
-  reportFailure: (message: string) => void;
+  copyPlainText: (text: string, message: CopyMessage) => void;
+  reportFailure: (message: CopyMessage) => void;
+  /** Drop the outcome of an earlier copy once the content it described changed */
+  clearStatus: () => void;
 }
 
-/** Clipboard actions plus the outcome line the panel shows under its buttons */
+/**
+ * Clipboard actions plus the outcome line the panel shows under its buttons.
+ * The line is stored as message keys: a locale switch re-renders it in the new
+ * language instead of leaving a stale translation on screen.
+ */
 export const useCopyActions = (): CopyActions => {
-  const { t } = useI18n();
   const [status, setStatus] = useState<CopyStatus | null>(null);
 
-  const copyRich = useCallback(
-    (html: string, plainText: string) => {
-      void copyRichText(html, plainText).then((result) => setStatus(richStatusOf(result, t)));
-    },
-    [t]
+  const copyRich = useCallback((html: string, plainText: string) => {
+    void copyRichText(html, plainText).then((result) => setStatus(richStatusOf(result)));
+  }, []);
+
+  const copyPlainText = useCallback((text: string, message: CopyMessage) => {
+    void copyText(text).then((ok) =>
+      setStatus(ok ? successStatus(message) : errorStatus({ key: 'forward.copy.failed' }))
+    );
+  }, []);
+
+  const reportFailure = useCallback(
+    (message: CopyMessage) => setStatus(errorStatus(message)),
+    []
   );
 
-  const copyPlainText = useCallback(
-    (text: string, successMessage: string) => {
-      void copyText(text).then((ok) =>
-        setStatus(
-          ok ? successStatus('plain-text', successMessage) : errorStatus(t('forward.copy.failed'))
-        )
-      );
-    },
-    [t]
-  );
+  const clearStatus = useCallback(() => setStatus(null), []);
 
-  const reportFailure = useCallback((message: string) => setStatus(errorStatus(message)), []);
-
-  return { status, copyRich, copyPlainText, reportFailure };
+  return { status, copyRich, copyPlainText, reportFailure, clearStatus };
 };

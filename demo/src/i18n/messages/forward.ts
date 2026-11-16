@@ -26,8 +26,10 @@ export const forwardZh = {
     '超过 {max} 字符，发送时客户端会自动拆成约 {parts} 条消息，不用手动分条；拆分点处的格式会在每条消息里各自重新开始。',
   'forward.entityCap':
     '实体 {entities} 个，{level} Telegram 单条消息的实体上限（约 {max} 个）；超出的部分发送时可能被静默丢掉。',
-  'forward.entityCap.split':
-    '实体 {entities} 个，{level} Telegram 单条消息的实体上限（约 {max} 个）；拆成约 {parts} 条发送时每条分别计数，是否被吞取决于拆分位置。',
+  'forward.entityCap.split.near':
+    '实体 {entities} 个；拆成约 {parts} 条后，其中一条最多约 {perPart} 个，接近单条上限（约 {max} 个）；继续增加格式就可能被丢弃。',
+  'forward.entityCap.split.over':
+    '实体 {entities} 个；拆成约 {parts} 条后，其中一条最多约 {perPart} 个，超出单条上限（约 {max} 个）；超出的部分发送时会被静默丢掉。',
   'forward.entityCap.level.near': '接近',
   'forward.entityCap.level.over': '超出',
   'forward.preview.title': '预览',
@@ -40,8 +42,10 @@ export const forwardZh = {
   'forward.copy.hint': '复制后到 Telegram 输入框粘贴',
   'forward.copy.rich': '复制富文本',
   'forward.copy.rich.hint': '到 Telegram 输入框粘贴，格式会保留',
+  'forward.copy.rich.hint.macos': 'macOS 原生客户端不读 HTML 剪贴板',
   'forward.copy.markdown': '复制 Markdown 文本',
   'forward.copy.markdown.hint': '粘贴后由客户端按 {dialect} 转换',
+  'forward.copy.markdown.hint.macos': 'macOS 原生客户端不会转换 Markdown',
   'forward.copy.plain': '复制纯文本',
   'forward.copy.plain.hint': '不带格式，最保险的兜底',
   'forward.copy.recommended': '推荐',
@@ -49,7 +53,8 @@ export const forwardZh = {
   'forward.copy.rich.ok': '已复制富文本（HTML），到 Telegram 输入框粘贴即可',
   'forward.copy.rich.okCompat': '已复制富文本（兼容模式），到 Telegram 输入框粘贴即可',
   'forward.copy.rich.fallback': '当前客户端不支持富文本剪贴板，已复制纯文本',
-  'forward.copy.markdown.done': '已复制 Markdown 文本（{dialect}）',
+  'forward.copy.markdown.done.telegram': '已复制 Markdown 文本（Telegram 方言）',
+  'forward.copy.markdown.done.ios': '已复制 Markdown 文本（iOS 方言）',
   'forward.copy.plain.done': '已复制纯文本',
   'forward.convert.richFailed': '转换失败：这段 Markdown 无法生成富文本。',
   'forward.convert.markdownFailed': '转换失败：这段 Markdown 无法生成 Markdown 文本。',
@@ -101,8 +106,10 @@ export const forwardEn: Record<keyof typeof forwardZh, string> = {
     'Over {max} characters — Telegram splits it into about {parts} messages when you send. No manual work; formatting restarts on each part.',
   'forward.entityCap':
     'entities: {entities} — {level} Telegram’s per-message limit (~{max}), so the excess may be dropped silently on send.',
-  'forward.entityCap.split':
-    'entities: {entities} — {level} Telegram’s per-message limit (~{max}). Sent as about {parts} parts, each counted on its own; whether the excess survives depends on where it splits.',
+  'forward.entityCap.split.near':
+    'entities: {entities} — split into about {parts} messages, the busiest one still carries about {perPart}, close to the per-message limit (~{max}); a few more runs may be dropped.',
+  'forward.entityCap.split.over':
+    'entities: {entities} — split into about {parts} messages, the busiest one still carries about {perPart}, over the per-message limit (~{max}); the excess is dropped silently on send.',
   'forward.entityCap.level.near': 'close to',
   'forward.entityCap.level.over': 'over',
   'forward.preview.title': 'Preview',
@@ -115,8 +122,10 @@ export const forwardEn: Record<keyof typeof forwardZh, string> = {
   'forward.copy.hint': 'Then paste into any Telegram chat',
   'forward.copy.rich': 'Copy rich text',
   'forward.copy.rich.hint': 'Paste into Telegram and keep the formatting',
+  'forward.copy.rich.hint.macos': 'The native macOS client does not read HTML',
   'forward.copy.markdown': 'Copy Markdown text',
   'forward.copy.markdown.hint': 'The client converts it on paste ({dialect})',
+  'forward.copy.markdown.hint.macos': 'The native macOS client does not convert Markdown',
   'forward.copy.plain': 'Copy plain text',
   'forward.copy.plain.hint': 'No formatting — the safest fallback',
   'forward.copy.recommended': 'Best',
@@ -124,7 +133,8 @@ export const forwardEn: Record<keyof typeof forwardZh, string> = {
   'forward.copy.rich.ok': 'Rich text copied — paste it into the Telegram input box',
   'forward.copy.rich.okCompat': 'Rich text copied (compatibility mode) — paste it into Telegram',
   'forward.copy.rich.fallback': 'This client cannot take rich text; plain text was copied instead',
-  'forward.copy.markdown.done': 'Markdown copied ({dialect})',
+  'forward.copy.markdown.done.telegram': 'Markdown copied (Telegram dialect)',
+  'forward.copy.markdown.done.ios': 'Markdown copied (iOS dialect)',
   'forward.copy.plain.done': 'Plain text copied',
   'forward.convert.richFailed': 'Conversion failed: this Markdown cannot produce rich text.',
   'forward.convert.markdownFailed': 'Conversion failed: this Markdown cannot produce Markdown text.',

@@ -51,7 +51,7 @@ export const App = () => {
       </header>
 
       <TabSwitch value={panel} onChange={handlePanelChange} />
-      <PlatformPicker value={platform} onChange={handlePlatformChange} />
+      <PlatformPicker value={platform} panel={panel} onChange={handlePlatformChange} />
 
       <main>
         <div className="panel-stack" hidden={panel !== 'forward'}>

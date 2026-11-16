@@ -2,8 +2,9 @@ import { useCallback, useMemo } from 'react';
 import type { ChangeEvent } from 'react';
 import { DEFAULT_MAX_LENGTH } from 'telegram-md-entities';
 import { match } from 'ts-pattern';
-import { MESSAGE_ENTITY_LIMIT, MESSAGE_ENTITY_WARN_LIMIT } from '../../core/entity-convert';
+import { MESSAGE_ENTITY_LIMIT } from '../../core/entity-convert';
 import { useI18n } from '../../i18n/i18n-context';
+import { entityBudgetOf } from './entity-budget';
 import { PreviewBubble } from './preview-bubble';
 import type { ForwardPreview } from './use-forward-preview';
 
@@ -19,8 +20,9 @@ interface PreviewMeta {
   /** The sent text is longer than one message and will be split */
   over: boolean;
   parts: number;
-  /** Entities of the whole message: Telegram drops the excess silently */
   entities: number;
+  /** Entities in the busiest part once the client splits the message */
+  maxEntitiesPerPart: number;
   entityRisk: boolean;
   /** Past the cap: the message will lose entities on send */
   entityOver: boolean;
@@ -46,26 +48,18 @@ export const PreviewPane = ({
     if (preview.kind !== 'ready') return null;
     const textLength = preview.rendered.text.length;
     const entities = preview.rendered.entities.length;
-    const entityRisk = entities >= MESSAGE_ENTITY_WARN_LIMIT;
-    const entityOver = entities > MESSAGE_ENTITY_LIMIT;
-    if (textLength > DEFAULT_MAX_LENGTH) {
-      const parts = Math.ceil(textLength / DEFAULT_MAX_LENGTH);
-      return {
-        label: t('forward.preview.meta.split', { chars: textLength, parts }),
-        over: true,
-        parts,
-        entities,
-        entityRisk,
-        entityOver,
-      };
-    }
+    const budget = entityBudgetOf(preview.rendered);
+    const over = budget.parts > 1;
     return {
-      label: t('forward.preview.meta', { chars: textLength, entities }),
-      over: false,
-      parts: 1,
+      label: over
+        ? t('forward.preview.meta.split', { chars: textLength, parts: budget.parts })
+        : t('forward.preview.meta', { chars: textLength, entities }),
+      over,
+      parts: budget.parts,
       entities,
-      entityRisk,
-      entityOver,
+      maxEntitiesPerPart: budget.maxEntitiesPerPart,
+      entityRisk: budget.risk,
+      entityOver: budget.over,
     };
   }, [preview, t]);
 
@@ -102,12 +96,18 @@ export const PreviewPane = ({
       )}
       {meta !== null && meta.entityRisk && (
         <p className="notice warning">
-          {t(meta.over ? 'forward.entityCap.split' : 'forward.entityCap', {
-            entities: meta.entities,
-            level: t(meta.entityOver ? 'forward.entityCap.level.over' : 'forward.entityCap.level.near'),
-            max: MESSAGE_ENTITY_LIMIT,
-            parts: meta.parts,
-          })}
+          {meta.over
+            ? t(meta.entityOver ? 'forward.entityCap.split.over' : 'forward.entityCap.split.near', {
+                entities: meta.entities,
+                parts: meta.parts,
+                perPart: meta.maxEntitiesPerPart,
+                max: MESSAGE_ENTITY_LIMIT,
+              })
+            : t('forward.entityCap', {
+                entities: meta.entities,
+                level: t(meta.entityOver ? 'forward.entityCap.level.over' : 'forward.entityCap.level.near'),
+                max: MESSAGE_ENTITY_LIMIT,
+              })}
         </p>
       )}
       <p className="hint">{t('forward.preview.note')}</p>

@@ -44,7 +44,7 @@ export const MarkdownResult = ({ markdown, onChange, onCopy, status }: MarkdownR
       </div>
       {status !== null && (
         <p className={status.tone === 'success' ? 'success-text' : 'error-text'} role="status">
-          {status.message}
+          {t(status.messageKey)}
         </p>
       )}
     </section>

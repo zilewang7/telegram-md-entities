@@ -1,3 +1,4 @@
+import { RichText } from '../../components/rich-text';
 import { useI18n } from '../../i18n/i18n-context';
 import type { MessageKey } from '../../i18n/messages';
 
@@ -45,6 +46,9 @@ export const SyntaxSupport = () => {
             </li>
           ))}
         </ul>
+        <p className="hint ab-syntax-hint">
+          <RichText text={t('about.syntax.hint')} />
+        </p>
       </div>
     </section>
   );

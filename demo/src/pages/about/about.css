@@ -273,6 +273,12 @@
   font-size: 12px;
 }
 
+/* Footnote under the chips: underline dunders and bare-URL behaviour */
+.ab-syntax-hint {
+  margin-top: 12px;
+  line-height: 1.6;
+}
+
 /* ---- known limitations ---- */
 
 .ab-limits.card {

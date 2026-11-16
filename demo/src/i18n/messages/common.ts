@@ -28,9 +28,15 @@ export const commonZh = {
   'tab.about': '了解更多',
   'tab.about.short': '了解更多',
 
-  'platform.label': '目标客户端',
-  'platform.hint': '选你打算把内容粘贴进去的那个客户端',
-  'platform.groupLabel': '目标客户端',
+  // The picker means a different client in each panel: the paste target for
+  // direction 1, the clipboard source for direction 2, the highlighted row in
+  // the capability matrix.
+  'platform.target.label': '目标客户端',
+  'platform.target.hint': '选你打算把内容粘贴进去的那个客户端',
+  'platform.source.label': '来源客户端',
+  'platform.source.hint': '选你复制消息的那个客户端',
+  'platform.client.label': '客户端',
+  'platform.client.hint': '选你现在使用的那个客户端',
   'platform.tdesktop': 'Desktop',
   'platform.android': 'Android',
   'platform.ios': 'iOS',
@@ -43,7 +49,7 @@ export const commonZh = {
     'Android 支持富文本粘贴：行内代码会变成普通文字，多行代码块已按 Android 的换行规则处理。',
   'channel.note.ios': 'iOS 客户端在粘贴 Markdown 时会自动转成格式；剧透会退化为普通文字。',
   'channel.note.macos':
-    'macOS 原生客户端对 HTML 剪贴板支持有限，Markdown 通道也可能不生效；建议使用桌面版 Telegram。',
+    'macOS 原生客户端两个通道都不可用；请改用桌面版 Telegram。',
   'channel.note.web': '浏览器版支持富文本粘贴；若浏览器拦截剪贴板，可改用 Markdown 文本通道。',
   'channel.note.unknown': '未识别客户端：先试富文本，失败再试 Markdown 文本。',
 
@@ -84,9 +90,12 @@ export const commonEn: Record<keyof typeof commonZh, string> = {
   'tab.about': 'Learn more',
   'tab.about.short': 'Learn more',
 
-  'platform.label': 'Target client',
-  'platform.hint': 'Pick the client you will paste into',
-  'platform.groupLabel': 'Target client',
+  'platform.target.label': 'Target client',
+  'platform.target.hint': 'Pick the client you will paste into',
+  'platform.source.label': 'Source client',
+  'platform.source.hint': 'Pick the client you copied the message from',
+  'platform.client.label': 'Client',
+  'platform.client.hint': 'Pick the client you are using',
   'platform.tdesktop': 'Desktop',
   'platform.android': 'Android',
   'platform.ios': 'iOS',
@@ -100,7 +109,7 @@ export const commonEn: Record<keyof typeof commonZh, string> = {
   'channel.note.ios':
     'The iOS client converts Markdown automatically on paste; spoilers degrade to plain text.',
   'channel.note.macos':
-    'The native macOS client has limited HTML clipboard support and the Markdown channel may not work either; Telegram Desktop is the safer choice.',
+    'Neither channel works in the native macOS client — use Telegram Desktop instead.',
   'channel.note.web':
     'Telegram Web supports rich-text paste; if the browser blocks the clipboard, use the Markdown channel instead.',
   'channel.note.unknown':

@@ -1,15 +1,19 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { ChangeEvent, ClipboardEvent } from 'react';
 import { clipboardHtmlToMarkdown } from '../../core/entity-convert';
-import { useI18n } from '../../i18n/i18n-context';
+import { escapePlainMarkdown } from './escape-plain';
 import type { PasteState } from './reverse-types';
 
 export interface PasteActions {
   state: PasteState;
-  /** Editable markdown, '' until a paste produced something */
+  /** What the paste textarea currently shows */
+  inputText: string;
+  /** Editable markdown, '' until a paste (or the plain fallback) produced something */
   markdown: string;
   reading: boolean;
   handlePaste: (event: ClipboardEvent<HTMLTextAreaElement>) => void;
+  /** Typed text counts as plain input: it has no clipboard flavors to parse */
+  handleInputChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
   /** null when this browser cannot read the clipboard directly */
   readFromClipboard: (() => void) | null;
   handleUsePlainAsMarkdown: () => void;
@@ -18,38 +22,40 @@ export interface PasteActions {
 
 /**
  * Paste / clipboard-read state machine. Reads both clipboard flavors: HTML goes
- * through the rich parser, plain text becomes the fallback branch. Markdown
- * starts as the parsed output and stays editable afterwards.
+ * through the rich parser, plain text becomes the fallback branch. Text typed
+ * into the box takes the same plain branch, so the result below always matches
+ * what the box shows. Markdown starts as the parsed output and stays editable.
  */
 export const usePasteActions = (readSupported: boolean): PasteActions => {
-  const { t } = useI18n();
   const [state, setState] = useState<PasteState>({ kind: 'idle' });
+  const [inputText, setInputText] = useState('');
   const [markdown, setMarkdown] = useState('');
   const [reading, setReading] = useState(false);
 
-  const applyRich = useCallback(
-    (html: string) => {
-      try {
-        const conversion = clipboardHtmlToMarkdown(html);
-        setState({ kind: 'rich', conversion });
-        setMarkdown(conversion.markdown);
-      } catch {
-        setState({ kind: 'error', message: t('reverse.error.parseFailed') });
-        setMarkdown('');
-      }
-    },
-    [t],
-  );
+  const applyRich = useCallback((html: string) => {
+    try {
+      const conversion = clipboardHtmlToMarkdown(html);
+      setInputText('');
+      setState({ kind: 'rich', conversion });
+      setMarkdown(conversion.markdown);
+    } catch {
+      setInputText('');
+      setState({ kind: 'error', messageKey: 'reverse.error.parseFailed' });
+      setMarkdown('');
+    }
+  }, []);
 
   const applyPlain = useCallback((text: string) => {
+    setInputText('');
     setState({ kind: 'plain', text });
     setMarkdown('');
   }, []);
 
   const applyEmpty = useCallback(() => {
-    setState({ kind: 'error', message: t('reverse.error.empty') });
+    setInputText('');
+    setState({ kind: 'error', messageKey: 'reverse.error.empty' });
     setMarkdown('');
-  }, [t]);
+  }, []);
 
   const handlePaste = useCallback(
     (event: ClipboardEvent<HTMLTextAreaElement>) => {
@@ -57,8 +63,6 @@ export const usePasteActions = (readSupported: boolean): PasteActions => {
       const data = event.clipboardData;
       const html = data.getData('text/html');
       const plain = data.getData('text/plain');
-      // The textarea is only a paste target: never keep its content
-      event.currentTarget.value = '';
       if (html.trim() !== '') {
         applyRich(html);
         return;
@@ -71,6 +75,13 @@ export const usePasteActions = (readSupported: boolean): PasteActions => {
     },
     [applyRich, applyPlain, applyEmpty],
   );
+
+  const handleInputChange = useCallback((event: ChangeEvent<HTMLTextAreaElement>) => {
+    const text = event.target.value;
+    setInputText(text);
+    setMarkdown('');
+    setState(text.trim() === '' ? { kind: 'idle' } : { kind: 'plain', text });
+  }, []);
 
   const readFromClipboard = useMemo(() => {
     if (!readSupported) return null;
@@ -97,18 +108,20 @@ export const usePasteActions = (readSupported: boolean): PasteActions => {
           }
           applyEmpty();
         } catch {
-          setState({ kind: 'error', message: t('reverse.error.readFailed') });
+          setInputText('');
+          setState({ kind: 'error', messageKey: 'reverse.error.readFailed' });
           setMarkdown('');
         } finally {
           setReading(false);
         }
       })();
     };
-  }, [readSupported, applyRich, applyPlain, applyEmpty, t]);
+  }, [readSupported, applyRich, applyPlain, applyEmpty]);
 
   const handleUsePlainAsMarkdown = useCallback(() => {
     if (state.kind !== 'plain') return;
-    setMarkdown(state.text);
+    // Literal text, not source to reinterpret: `**` was two asterisks
+    setMarkdown(escapePlainMarkdown(state.text));
   }, [state]);
 
   const handleMarkdownChange = useCallback(
@@ -118,9 +131,11 @@ export const usePasteActions = (readSupported: boolean): PasteActions => {
 
   return {
     state,
+    inputText,
     markdown,
     reading,
     handlePaste,
+    handleInputChange,
     readFromClipboard,
     handleUsePlainAsMarkdown,
     handleMarkdownChange,

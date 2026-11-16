@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ChannelPlan } from '../../core/types';
 import { useI18n } from '../../i18n/i18n-context';
 import { channelNoteKeyOf } from '../../i18n/messages';
@@ -22,13 +22,19 @@ export const ForwardPanel = ({ plan }: ForwardPanelProps) => {
   // Seeded once on purpose: switching language keeps the text the user edited
   const [markdown, setMarkdown] = useState(() => t('forward.sample.content'));
   const [collapsedQuotes, setCollapsedQuotes] = useState(false);
-  const preview = useForwardPreview(markdown, collapsedQuotes);
+  const preview = useForwardPreview(markdown, collapsedQuotes, plan.platform);
   const copy = useCopyActions();
   const actions = useForwardActions({ markdown, plan, copy, collapsedQuotes });
   const channelNote = useMemo(
     () => t(channelNoteKeyOf(plan.platform)),
     [plan.platform, t]
   );
+  const { clearStatus } = copy;
+
+  // The outcome line describes a copy of content that no longer exists
+  useEffect(() => {
+    clearStatus();
+  }, [clearStatus, markdown, plan.platform, collapsedQuotes]);
 
   const handleChange = useCallback((next: string) => setMarkdown(next), []);
   const handleLoadSample = useCallback(() => setMarkdown(t('forward.sample.content')), [t]);

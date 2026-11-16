@@ -6,7 +6,7 @@
 export const aboutZh = {
   'about.matrix.title': '平台能力矩阵',
   'about.matrix.intro':
-    '同一段内容粘到不同客户端，能还原的程度不一样。高亮行是你当前选中的目标客户端，可在页面上方切换。',
+    '同一段内容粘到不同客户端，能还原的程度不一样。高亮行是你当前选中的客户端，可在页面上方切换。',
   'about.matrix.col.client': '客户端',
   'about.matrix.col.forward': '方向 1：Markdown → Telegram',
   'about.matrix.col.reverse': '方向 2：Telegram → Markdown',
@@ -31,7 +31,7 @@ export const aboutZh = {
   'about.row.ios.note': '需客户端「Markdown 粘贴」开启（默认开）；不支持 `||剧透||`。',
   'about.row.macos.client': 'macOS 原生',
   'about.row.macos.forward': '不可用',
-  'about.row.macos.reverse': '不可用',
+  'about.row.macos.reverse': '只能拿到纯文本',
   'about.row.macos.note': '客户端既不读也不写 HTML。',
   'about.row.web.client': 'Telegram 网页版',
   'about.row.web.forward': '富文本 HTML',
@@ -70,7 +70,9 @@ export const aboutZh = {
   'about.library.link.npm': 'npm 包',
 
   'about.syntax.title': '支持的 Markdown 语法',
-  'about.syntax.intro': '下面这些写法都会转成 Telegram 实体；各客户端最终显示成什么样，见上面的能力矩阵。',
+  'about.syntax.intro': '下面这些写法都能正确渲染；各客户端最终显示成什么样，见上面的能力矩阵。',
+  'about.syntax.hint':
+    '`__init__` 这类双下划线标识符会变成下划线，代码请用反引号包起来。裸链接原样输出，发送时由客户端自动识别成链接。',
   'about.syntax.bold': '粗体',
   'about.syntax.italic': '斜体',
   'about.syntax.underline': '下划线',
@@ -102,7 +104,7 @@ export const aboutZh = {
 export const aboutEn: Record<keyof typeof aboutZh, string> = {
   'about.matrix.title': 'Client capability matrix',
   'about.matrix.intro':
-    'The same content restores differently depending on the client you paste into. The highlighted row is the target client selected above.',
+    'The same content restores differently depending on the client you paste into. The highlighted row is the client selected above.',
   'about.matrix.col.client': 'Client',
   'about.matrix.col.forward': 'Direction 1: Markdown → Telegram',
   'about.matrix.col.reverse': 'Direction 2: Telegram → Markdown',
@@ -130,7 +132,7 @@ export const aboutEn: Record<keyof typeof aboutZh, string> = {
     'Requires the client’s “Paste as Markdown” setting (on by default); `||spoilers||` are not supported.',
   'about.row.macos.client': 'native macOS',
   'about.row.macos.forward': 'not available',
-  'about.row.macos.reverse': 'not available',
+  'about.row.macos.reverse': 'plain text only',
   'about.row.macos.note': 'The client neither reads nor writes HTML.',
   'about.row.web.client': 'Telegram Web',
   'about.row.web.forward': 'rich HTML',
@@ -171,7 +173,9 @@ export const aboutEn: Record<keyof typeof aboutZh, string> = {
 
   'about.syntax.title': 'Supported Markdown',
   'about.syntax.intro':
-    'Everything below becomes Telegram entities; how each client finally renders it is covered by the capability matrix above.',
+    'Everything below renders correctly; how each client finally shows it is covered by the capability matrix above.',
+  'about.syntax.hint':
+    'Double-underscore identifiers such as `__init__` render as underline — wrap code in backticks. Bare URLs are sent as written and linked by the client on send.',
   'about.syntax.bold': 'bold',
   'about.syntax.italic': 'italic',
   'about.syntax.underline': 'underline',
